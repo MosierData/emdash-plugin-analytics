@@ -125,6 +125,22 @@ export async function loadTrackingSettingsDocument(
   return loadLegacyTrackingDocument(ctx);
 }
 
+/**
+ * Ensure the canonical doc exists so saveTrackingSettings always has a snapshot
+ * for conflict detection. Called when the /tracking UI loads settings — by save
+ * time the doc exists and the field-by-field stale check runs.
+ */
+export async function ensureCanonicalDocExists(
+  ctx: Pick<PluginContext, 'kv'>,
+  doc: TrackingSettingsDocument,
+): Promise<void> {
+  const kv = asKvWithCas(ctx.kv);
+  const existing = await kv.getRaw(TRACKING_SETTINGS_DOC_KEY);
+  if (existing === null) {
+    await kv.commitIfValueUnchanged(TRACKING_SETTINGS_DOC_KEY, null, doc);
+  }
+}
+
 export async function mirrorTrackingDocumentToSettingsKeys(
   ctx: Pick<PluginContext, 'kv'>,
   doc: TrackingSettingsDocument,

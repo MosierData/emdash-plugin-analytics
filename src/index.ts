@@ -4,6 +4,7 @@ import { validateLicense, CACHE_KEY } from './lib/licensing';
 import { buildPageFragments } from './frontend/injector';
 import {
   documentToApiResponse,
+  ensureCanonicalDocExists,
   loadTrackingSettingsDocument,
   saveTrackingSettings,
   type TrackingSaveBody,
@@ -262,6 +263,9 @@ export function createPlugin() {
       'tracking/settings': {
         handler: async (ctx) => {
           const doc = await loadTrackingSettingsDocument(ctx);
+          // Snapshot current state so saveTrackingSettings can detect races
+          // with the settings-schema form even on first-ever /tracking load.
+          await ensureCanonicalDocExists(ctx, doc);
           return documentToApiResponse(doc);
         }
       },
