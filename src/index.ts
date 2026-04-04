@@ -20,11 +20,21 @@ export function createPlugin() {
           label: 'License Key',
           description: "Get this from your MosierData portal. Prefix: qdsh_"
         },
+        gtmEnabled: {
+          type: 'boolean',
+          label: 'Enable Google Tag Manager',
+          default: false
+        },
         gtmId: {
           type: 'string',
           label: 'Google Tag Manager ID',
           description: 'e.g. GTM-XXXXXXX',
           default: ''
+        },
+        ga4Enabled: {
+          type: 'boolean',
+          label: 'Enable Google Analytics 4',
+          default: false
         },
         ga4Id: {
           type: 'string',
@@ -32,11 +42,21 @@ export function createPlugin() {
           description: 'e.g. G-XXXXXXXXXX',
           default: ''
         },
+        metaPixelEnabled: {
+          type: 'boolean',
+          label: 'Enable Meta (Facebook) Pixel',
+          default: false
+        },
         metaPixelId: {
           type: 'string',
           label: 'Meta (Facebook) Pixel ID',
           description: 'Numeric ID from Meta Events Manager',
           default: ''
+        },
+        linkedInEnabled: {
+          type: 'boolean',
+          label: 'Enable LinkedIn Insights Tag',
+          default: false
         },
         linkedInPartnerId: {
           type: 'string',
@@ -97,23 +117,38 @@ export function createPlugin() {
         const license = await validateLicense(ctx);
         if (!license.isValid) return null;
 
-        const [gtmId, ga4Id, metaPixelId, linkedInPartnerId, dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
-          await Promise.all([
-            ctx.kv.get<string>('settings:gtmId'),
-            ctx.kv.get<string>('settings:ga4Id'),
-            ctx.kv.get<string>('settings:metaPixelId'),
-            ctx.kv.get<string>('settings:linkedInPartnerId'),
-            ctx.kv.get<string>('settings:dniSwapNumber'),
-            ctx.kv.get<string>('settings:dniScriptUrl'),
-            ctx.kv.get<string>('settings:customHeadCode'),
-            ctx.kv.get<string>('settings:customFooterCode'),
-            ctx.kv.get<boolean>('settings:debug')
-          ]);
+        const [
+          gtmEnabled, gtmId,
+          ga4Enabled, ga4Id,
+          metaPixelEnabled, metaPixelId,
+          linkedInEnabled, linkedInPartnerId,
+          dniSwapNumber, dniScriptUrl,
+          customHeadCode, customFooterCode,
+          debug
+        ] = await Promise.all([
+          ctx.kv.get<boolean>('settings:gtmEnabled'),
+          ctx.kv.get<string>('settings:gtmId'),
+          ctx.kv.get<boolean>('settings:ga4Enabled'),
+          ctx.kv.get<string>('settings:ga4Id'),
+          ctx.kv.get<boolean>('settings:metaPixelEnabled'),
+          ctx.kv.get<string>('settings:metaPixelId'),
+          ctx.kv.get<boolean>('settings:linkedInEnabled'),
+          ctx.kv.get<string>('settings:linkedInPartnerId'),
+          ctx.kv.get<string>('settings:dniSwapNumber'),
+          ctx.kv.get<string>('settings:dniScriptUrl'),
+          ctx.kv.get<string>('settings:customHeadCode'),
+          ctx.kv.get<string>('settings:customFooterCode'),
+          ctx.kv.get<boolean>('settings:debug')
+        ]);
 
         return buildPageFragments(license, {
+          gtmEnabled: gtmEnabled ?? false,
           gtmId: gtmId ?? '',
+          ga4Enabled: ga4Enabled ?? false,
           ga4Id: ga4Id ?? '',
+          metaPixelEnabled: metaPixelEnabled ?? false,
           metaPixelId: metaPixelId ?? '',
+          linkedInEnabled: linkedInEnabled ?? false,
           linkedInPartnerId: linkedInPartnerId ?? '',
           dniSwapNumber: dniSwapNumber ?? '',
           dniScriptUrl: dniScriptUrl ?? '',

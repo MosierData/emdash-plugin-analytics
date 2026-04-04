@@ -2,9 +2,13 @@ import type { PageFragmentContribution } from 'emdash';
 import type { LicenseCapability } from '../types';
 
 export interface InjectorSettings {
+  gtmEnabled: boolean;
   gtmId: string;
+  ga4Enabled: boolean;
   ga4Id: string;
+  metaPixelEnabled: boolean;
   metaPixelId: string;
+  linkedInEnabled: boolean;
   linkedInPartnerId: string;
   dniSwapNumber: string;
   dniScriptUrl: string;
@@ -29,7 +33,7 @@ export function buildPageFragments(
   // 1. Google Tag Manager — official inline loader (initializes dataLayer and
   // pushes gtm.start before dynamically inserting gtm.js; required for consent
   // management and timing-dependent tags to work correctly)
-  if (settings.gtmId) {
+  if (settings.gtmEnabled && settings.gtmId) {
     fragments.push({
       kind: 'inline-script',
       placement: 'head',
@@ -45,7 +49,7 @@ export function buildPageFragments(
   }
 
   // 2. Google Analytics 4
-  if (settings.ga4Id) {
+  if (settings.ga4Enabled && settings.ga4Id) {
     fragments.push({
       kind: 'external-script',
       placement: 'head',
@@ -62,7 +66,7 @@ export function buildPageFragments(
   }
 
   // 3. Meta (Facebook) Pixel
-  if (settings.metaPixelId) {
+  if (settings.metaPixelEnabled && settings.metaPixelId) {
     fragments.push({
       kind: 'inline-script',
       placement: 'head',
@@ -78,7 +82,7 @@ export function buildPageFragments(
   }
 
   // 4. LinkedIn Insights Tag
-  if (settings.linkedInPartnerId) {
+  if (settings.linkedInEnabled && settings.linkedInPartnerId) {
     fragments.push({
       kind: 'inline-script',
       placement: 'head',
@@ -104,7 +108,7 @@ export function buildPageFragments(
   fragments.push({
     kind: 'inline-script',
     placement: 'head',
-    content: `window.md_roii_settings = { gtm_id: '${escapeJs(settings.gtmId)}', debug: ${settings.debug} };`,
+    content: `window.md_roii_settings = { gtm_id: '${escapeJs(settings.gtmEnabled ? settings.gtmId : '')}', debug: ${settings.debug} };`,
     id: 'md-roi-config'
   });
 
