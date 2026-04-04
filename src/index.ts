@@ -2,6 +2,12 @@ import { definePlugin } from 'emdash';
 import type { LicenseData } from './types';
 import { validateLicense, CACHE_KEY } from './lib/licensing';
 import { buildPageFragments } from './frontend/injector';
+import {
+  documentToApiResponse,
+  loadTrackingSettingsDocument,
+  saveTrackingSettings,
+  type TrackingSaveBody,
+} from './lib/trackingSettingsDocument';
 
 export function createPlugin() {
   return definePlugin({
@@ -162,64 +168,38 @@ export function createPlugin() {
         const license = await validateLicense(ctx);
         if (!license.isValid) return null;
 
-        const [
-          gtmEnabled, gtmId,
-          ga4Enabled, ga4Id,
-          metaPixelEnabled, metaPixelId,
-          linkedInEnabled, linkedInPartnerId,
-          tiktokEnabled, tiktokPixelId,
-          bingEnabled, bingTagId,
-          pinterestEnabled, pinterestTagId,
-          nextdoorEnabled, nextdoorPixelId,
-          dniSwapNumber, dniScriptUrl,
-          customHeadCode, customFooterCode,
-          debug
-        ] = await Promise.all([
-          ctx.kv.get<boolean>('settings:gtmEnabled'),
-          ctx.kv.get<string>('settings:gtmId'),
-          ctx.kv.get<boolean>('settings:ga4Enabled'),
-          ctx.kv.get<string>('settings:ga4Id'),
-          ctx.kv.get<boolean>('settings:metaPixelEnabled'),
-          ctx.kv.get<string>('settings:metaPixelId'),
-          ctx.kv.get<boolean>('settings:linkedInEnabled'),
-          ctx.kv.get<string>('settings:linkedInPartnerId'),
-          ctx.kv.get<boolean>('settings:tiktokEnabled'),
-          ctx.kv.get<string>('settings:tiktokPixelId'),
-          ctx.kv.get<boolean>('settings:bingEnabled'),
-          ctx.kv.get<string>('settings:bingTagId'),
-          ctx.kv.get<boolean>('settings:pinterestEnabled'),
-          ctx.kv.get<string>('settings:pinterestTagId'),
-          ctx.kv.get<boolean>('settings:nextdoorEnabled'),
-          ctx.kv.get<string>('settings:nextdoorPixelId'),
-          ctx.kv.get<string>('settings:dniSwapNumber'),
-          ctx.kv.get<string>('settings:dniScriptUrl'),
-          ctx.kv.get<string>('settings:customHeadCode'),
-          ctx.kv.get<string>('settings:customFooterCode'),
-          ctx.kv.get<boolean>('settings:debug')
-        ]);
+        const tracking = await loadTrackingSettingsDocument(ctx);
+        const [dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
+          await Promise.all([
+            ctx.kv.get<string>('settings:dniSwapNumber'),
+            ctx.kv.get<string>('settings:dniScriptUrl'),
+            ctx.kv.get<string>('settings:customHeadCode'),
+            ctx.kv.get<string>('settings:customFooterCode'),
+            ctx.kv.get<boolean>('settings:debug'),
+          ]);
 
         return buildPageFragments(license, {
-          gtmEnabled: gtmEnabled ?? false,
-          gtmId: gtmId ?? '',
-          ga4Enabled: ga4Enabled ?? false,
-          ga4Id: ga4Id ?? '',
-          metaPixelEnabled: metaPixelEnabled ?? false,
-          metaPixelId: metaPixelId ?? '',
-          linkedInEnabled: linkedInEnabled ?? false,
-          linkedInPartnerId: linkedInPartnerId ?? '',
-          tiktokEnabled: tiktokEnabled ?? false,
-          tiktokPixelId: tiktokPixelId ?? '',
-          bingEnabled: bingEnabled ?? false,
-          bingTagId: bingTagId ?? '',
-          pinterestEnabled: pinterestEnabled ?? false,
-          pinterestTagId: pinterestTagId ?? '',
-          nextdoorEnabled: nextdoorEnabled ?? false,
-          nextdoorPixelId: nextdoorPixelId ?? '',
+          gtmEnabled: tracking.gtmEnabled,
+          gtmId: tracking.gtmId,
+          ga4Enabled: tracking.ga4Enabled,
+          ga4Id: tracking.ga4Id,
+          metaPixelEnabled: tracking.metaEnabled,
+          metaPixelId: tracking.metaId,
+          linkedInEnabled: tracking.linkedinEnabled,
+          linkedInPartnerId: tracking.linkedinId,
+          tiktokEnabled: tracking.tiktokEnabled,
+          tiktokPixelId: tracking.tiktokId,
+          bingEnabled: tracking.bingEnabled,
+          bingTagId: tracking.bingId,
+          pinterestEnabled: tracking.pinterestEnabled,
+          pinterestTagId: tracking.pinterestId,
+          nextdoorEnabled: tracking.nextdoorEnabled,
+          nextdoorPixelId: tracking.nextdoorId,
           dniSwapNumber: dniSwapNumber ?? '',
           dniScriptUrl: dniScriptUrl ?? '',
           customHeadCode: customHeadCode ?? '',
           customFooterCode: customFooterCode ?? '',
-          debug: debug ?? false
+          debug: debug ?? false,
         });
       }
     },
@@ -281,103 +261,16 @@ export function createPlugin() {
       // Returns all tracking pixel settings mapped to TrackingValues field names.
       'tracking/settings': {
         handler: async (ctx) => {
-          const [
-            gtmEnabled, gtmId,
-            ga4Enabled, ga4Id,
-            metaPixelEnabled, metaPixelId,
-            linkedInEnabled, linkedInPartnerId,
-            tiktokEnabled, tiktokPixelId,
-            bingEnabled, bingTagId,
-            pinterestEnabled, pinterestTagId,
-            nextdoorEnabled, nextdoorPixelId,
-            settingsRevision,
-          ] = await Promise.all([
-            ctx.kv.get<boolean>('settings:gtmEnabled'),
-            ctx.kv.get<string>('settings:gtmId'),
-            ctx.kv.get<boolean>('settings:ga4Enabled'),
-            ctx.kv.get<string>('settings:ga4Id'),
-            ctx.kv.get<boolean>('settings:metaPixelEnabled'),
-            ctx.kv.get<string>('settings:metaPixelId'),
-            ctx.kv.get<boolean>('settings:linkedInEnabled'),
-            ctx.kv.get<string>('settings:linkedInPartnerId'),
-            ctx.kv.get<boolean>('settings:tiktokEnabled'),
-            ctx.kv.get<string>('settings:tiktokPixelId'),
-            ctx.kv.get<boolean>('settings:bingEnabled'),
-            ctx.kv.get<string>('settings:bingTagId'),
-            ctx.kv.get<boolean>('settings:pinterestEnabled'),
-            ctx.kv.get<string>('settings:pinterestTagId'),
-            ctx.kv.get<boolean>('settings:nextdoorEnabled'),
-            ctx.kv.get<string>('settings:nextdoorPixelId'),
-            ctx.kv.get<number>('settings:trackingSettingsRevision'),
-          ]);
-          return {
-            gtmEnabled: gtmEnabled ?? false,
-            gtmId: gtmId ?? '',
-            ga4Enabled: ga4Enabled ?? false,
-            ga4Id: ga4Id ?? '',
-            metaEnabled: metaPixelEnabled ?? false,
-            metaId: metaPixelId ?? '',
-            linkedinEnabled: linkedInEnabled ?? false,
-            linkedinId: linkedInPartnerId ?? '',
-            tiktokEnabled: tiktokEnabled ?? false,
-            tiktokId: tiktokPixelId ?? '',
-            bingEnabled: bingEnabled ?? false,
-            bingId: bingTagId ?? '',
-            pinterestEnabled: pinterestEnabled ?? false,
-            pinterestId: pinterestTagId ?? '',
-            nextdoorEnabled: nextdoorEnabled ?? false,
-            nextdoorId: nextdoorPixelId ?? '',
-            settingsRevision: settingsRevision ?? 0,
-          };
+          const doc = await loadTrackingSettingsDocument(ctx);
+          return documentToApiResponse(doc);
         }
       },
 
       // Saves tracking pixel settings from the custom UI back to the KV store.
       'tracking/save': {
         handler: async (ctx) => {
-          const body = await ctx.request.json() as {
-            settingsRevision?: number;
-            gtmEnabled: boolean; gtmId: string;
-            ga4Enabled: boolean; ga4Id: string;
-            metaEnabled: boolean; metaId: string;
-            linkedinEnabled: boolean; linkedinId: string;
-            tiktokEnabled: boolean; tiktokId: string;
-            bingEnabled: boolean; bingId: string;
-            pinterestEnabled: boolean; pinterestId: string;
-            nextdoorEnabled: boolean; nextdoorId: string;
-          };
-          const currentRev = (await ctx.kv.get<number>('settings:trackingSettingsRevision')) ?? 0;
-          if (
-            body.settingsRevision !== undefined &&
-            body.settingsRevision !== currentRev
-          ) {
-            return {
-              ok: false as const,
-              conflict: true as const,
-              settingsRevision: currentRev,
-            };
-          }
-          const nextRev = currentRev + 1;
-          await Promise.all([
-            ctx.kv.set('settings:gtmEnabled', body.gtmEnabled),
-            ctx.kv.set('settings:gtmId', body.gtmId),
-            ctx.kv.set('settings:ga4Enabled', body.ga4Enabled),
-            ctx.kv.set('settings:ga4Id', body.ga4Id),
-            ctx.kv.set('settings:metaPixelEnabled', body.metaEnabled),
-            ctx.kv.set('settings:metaPixelId', body.metaId),
-            ctx.kv.set('settings:linkedInEnabled', body.linkedinEnabled),
-            ctx.kv.set('settings:linkedInPartnerId', body.linkedinId),
-            ctx.kv.set('settings:tiktokEnabled', body.tiktokEnabled),
-            ctx.kv.set('settings:tiktokPixelId', body.tiktokId),
-            ctx.kv.set('settings:bingEnabled', body.bingEnabled),
-            ctx.kv.set('settings:bingTagId', body.bingId),
-            ctx.kv.set('settings:pinterestEnabled', body.pinterestEnabled),
-            ctx.kv.set('settings:pinterestTagId', body.pinterestId),
-            ctx.kv.set('settings:nextdoorEnabled', body.nextdoorEnabled),
-            ctx.kv.set('settings:nextdoorPixelId', body.nextdoorId),
-            ctx.kv.set('settings:trackingSettingsRevision', nextRev),
-          ]);
-          return { ok: true as const, settingsRevision: nextRev };
+          const body = await ctx.request.json() as TrackingSaveBody;
+          return saveTrackingSettings(ctx, body);
         }
       },
 

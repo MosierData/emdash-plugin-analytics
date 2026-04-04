@@ -20,8 +20,12 @@
       "import": "./dist/sandbox-entry.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "patches"
+  ],
   "scripts": {
+    "postinstall": "patch-package",
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
@@ -45,5 +49,8 @@
     "@emdash-cms/admin": "*",
     "emdash": "^0.1.0",
     "react": "^18.0.0"
+  },
+  "dependencies": {
+    "patch-package": "^8.0.1"
   }
 }
