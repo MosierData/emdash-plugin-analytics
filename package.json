@@ -1,0 +1,49 @@
+{
+  "name": "@mosierdata/emdash-plugin-roi-insights",
+  "version": "1.0.0",
+  "description": "Tag Manager, Call Tracking, and Marketing Analytics for EmDash",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./descriptor": {
+      "types": "./dist/descriptor.d.ts",
+      "import": "./dist/descriptor.js"
+    },
+    "./admin": {
+      "types": "./dist/admin.d.ts",
+      "import": "./dist/admin.js"
+    },
+    "./sandbox": {
+      "import": "./dist/sandbox-entry.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bundle": "emdash plugin bundle",
+    "publish": "emdash plugin publish --build"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "emdash": "^0.1.0",
+    "jsdom": "^24.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@emdash-cms/admin": "*",
+    "emdash": "^0.1.0",
+    "react": "^18.0.0"
+  }
+}
