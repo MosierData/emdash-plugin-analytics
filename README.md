@@ -251,7 +251,7 @@ MIT — see [LICENSE](LICENSE) for details.
 ## Links
 
 - [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — Our marketing intelligence platform
-- [Documentation](https://roiknowledge.com/docs?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — Setup guides and reference
+- [Docs & Knowledge Library](https://roiknowledge.com/library?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — Setup guides and reference
 - [EmDash CMS](https://github.com/emdash-cms/emdash) — The CMS this plugin is built for
 - [MosierData](https://mosierdata.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — The team behind ROI Insights
 - [Report an Issue](https://github.com/MosierData/emdash-plugin-analytics/issues) — Found a bug? Let us know
