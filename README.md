@@ -4,7 +4,7 @@
 
 # EmDash Analytics Plugin
 
-**Google Tag Manager, analytics, and call tracking for EmDash CMS — provided by [ROI Insights](https://roiknowledge.com) from [MosierData](https://mosierdata.com).**
+**Google Tag Manager, analytics, and call tracking for EmDash CMS — provided by [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) from [MosierData](https://mosierdata.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics).**
 
 Core tracking features and basic analytics are completely free — no trial, no time limit, no credit card. Premium upgrades are available when you're ready for AI-powered call analysis, lead scoring, and advanced attribution.
 
@@ -84,7 +84,7 @@ The free tier stays free forever. Paid tiers add AI intelligence and deeper attr
 
 **Business ($199/mo)** is for high-volume advertisers and agencies. The Ads Advisor watches your ad spend 24/7 — alerting you to budget overruns, underperforming campaigns, and Performance Max anomalies before they cost you. You also get the lowest call tracking rates, custom reporting, and MCP AI agent access to query your marketing data programmatically.
 
-**Founder's Club ($1,425 one-time)** — Lifetime access to Business tier features, available as a limited-time offer for early adopters. See [ROI Insights](https://roiknowledge.com) for availability.
+**Founder's Club ($1,425 one-time)** — Lifetime access to Business tier features, available as a limited-time offer for early adopters. See [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) for availability.
 
 ### Does Upgrading Actually Save Money?
 
@@ -250,8 +250,8 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [ROI Insights](https://roiknowledge.com) — Our marketing intelligence platform
-- [Documentation](https://roiknowledge.com/docs) — Setup guides and reference
+- [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — Our marketing intelligence platform
+- [Documentation](https://roiknowledge.com/docs?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — Setup guides and reference
 - [EmDash CMS](https://github.com/emdash-cms/emdash) — The CMS this plugin is built for
-- [MosierData](https://mosierdata.com) — The team behind ROI Insights
+- [MosierData](https://mosierdata.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) — The team behind ROI Insights
 - [Report an Issue](https://github.com/MosierData/emdash-plugin-analytics/issues) — Found a bug? Let us know
