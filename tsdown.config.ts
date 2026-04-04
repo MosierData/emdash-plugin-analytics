@@ -32,6 +32,7 @@ export default defineConfig([
     entry: { 'sandbox-entry': 'src/index.ts' },
     format: 'esm',
     dts: false,
+    noExternal: [/.*/],
     outDir: 'dist',
   },
 ]);

@@ -95,7 +95,9 @@ export async function loadLegacyTrackingDocument(
 
   return {
     settingsRevision: settingsRevision ?? 0,
-    gtmEnabled: gtmEnabled ?? false,
+    // Backward compat: existing installs have settings:gtmId but not settings:gtmEnabled.
+    // Infer enabled from presence of an ID so GTM keeps injecting after upgrade.
+    gtmEnabled: gtmEnabled ?? (!!gtmId),
     gtmId: gtmId ?? '',
     ga4Enabled: ga4Enabled ?? false,
     ga4Id: ga4Id ?? '',
@@ -176,6 +178,27 @@ export async function saveTrackingSettings(
       body.settingsRevision !== current.settingsRevision
     ) {
       return { ok: false, conflict: true, settingsRevision: current.settingsRevision };
+    }
+
+    // Detect settings-schema edits that the body would silently overwrite.
+    // The settings-schema form writes settings:* without bumping settingsRevision,
+    // so the revision check above cannot catch this race. Compare each body field
+    // against the live settings:* value; if they diverge and body still carries the
+    // stale canonical value, the /tracking snapshot is out of date — reject it.
+    if (expectedRaw !== null) {
+      const canonicalDoc = JSON.parse(expectedRaw) as TrackingSettingsDocument;
+      const wouldClobber = (
+        ['gtmEnabled','gtmId','ga4Enabled','ga4Id','metaEnabled','metaId',
+         'linkedinEnabled','linkedinId','tiktokEnabled','tiktokId','bingEnabled','bingId',
+         'pinterestEnabled','pinterestId','nextdoorEnabled','nextdoorId'] as const
+      ).some(
+        (field) =>
+          current[field] !== canonicalDoc[field] &&
+          (body as Record<string, unknown>)[field] === (canonicalDoc as Record<string, unknown>)[field],
+      );
+      if (wouldClobber) {
+        return { ok: false, conflict: true, settingsRevision: current.settingsRevision };
+      }
     }
 
     const nextDoc: TrackingSettingsDocument = {

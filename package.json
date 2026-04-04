@@ -5,19 +5,19 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     },
     "./descriptor": {
-      "types": "./dist/descriptor.d.ts",
-      "import": "./dist/descriptor.js"
+      "types": "./dist/descriptor.d.mts",
+      "import": "./dist/descriptor.mjs"
     },
     "./admin": {
-      "types": "./dist/admin.d.ts",
-      "import": "./dist/admin.js"
+      "types": "./dist/admin.d.mts",
+      "import": "./dist/admin.mjs"
     },
     "./sandbox": {
-      "import": "./dist/sandbox-entry.js"
+      "import": "./dist/sandbox-entry.mjs"
     }
   },
   "files": [
