@@ -1293,7 +1293,7 @@ export function TrackingSettingsAdmin() {
           }
           if (!res.ok || typeof res.settingsRevision !== 'number') {
             saveInFlight.current = false;
-            savePending.current = null;
+            if (!savePending.current) savePending.current = snapshot;
             setSaveStatus('error');
             return;
           }
@@ -1312,7 +1312,7 @@ export function TrackingSettingsAdmin() {
             return;
           }
           saveInFlight.current = false;
-          savePending.current = null;
+          if (!savePending.current) savePending.current = snapshot;
           setSaveStatus('error');
         });
     },

@@ -30,9 +30,18 @@ index 7d6ed8f..225baff 100644
  	* Get an option value with a default
  	*/
 diff --git a/node_modules/emdash/dist/search-DG603UrT.mjs b/node_modules/emdash/dist/search-DG603UrT.mjs
-index a7d99e7..93b6f86 100644
+index a7d99e7..d682e8b 100644
 --- a/node_modules/emdash/dist/search-DG603UrT.mjs
 +++ b/node_modules/emdash/dist/search-DG603UrT.mjs
+@@ -14,7 +14,7 @@ import { i as pluginManifestSchema } from "./manifest-schema-Dcl0R6nM.mjs";
+ import { t as generatePreviewToken } from "./tokens-DpgrkrXK.mjs";
+ import { sql } from "kysely";
+ import { ulid } from "ulidx";
+-import { z } from "astro/zod";
++import { z } from "zod";
+ import { AsyncLocalStorage } from "node:async_hooks";
+ import { z as z$1 } from "zod";
+ import { createGzipDecoder, unpackTar } from "modern-tar";
 @@ -5262,6 +5262,12 @@ function createKVAccess(optionsRepo, pluginId) {
  				value
  			});

@@ -117,8 +117,9 @@ export async function loadLegacyTrackingDocument(
 export async function loadTrackingSettingsDocument(
   ctx: Pick<PluginContext, 'kv'>,
 ): Promise<TrackingSettingsDocument> {
-  const doc = await ctx.kv.get<unknown>(TRACKING_SETTINGS_DOC_KEY);
-  if (isDocShape(doc)) return doc;
+  // Always read from settings:* so edits made through the auto-generated
+  // settingsSchema form are reflected here. The canonical doc (state:trackingSettingsDoc)
+  // is used only by saveTrackingSettings for CAS; it is not the runtime source of truth.
   return loadLegacyTrackingDocument(ctx);
 }
 
