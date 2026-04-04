@@ -5,10 +5,12 @@
  */
 import { AdminDashboard } from './admin/Dashboard';
 import { SettingsPage } from './admin/Settings';
+import { TrackingSettingsAdmin } from './admin/TrackingSettings';
 
 export const pages = {
   '/dashboard': AdminDashboard,
-  '/settings': SettingsPage
+  '/settings': SettingsPage,
+  '/tracking': TrackingSettingsAdmin,
 };
 
 export const widgets = {};

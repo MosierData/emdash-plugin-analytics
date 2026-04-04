@@ -140,6 +140,7 @@ export function createPlugin() {
       },
       pages: [
         { path: '/dashboard', label: 'Marketing ROI', icon: 'chart' },
+        { path: '/tracking', label: 'Tracking Pixels', icon: 'tracking' },
         { path: '/settings', label: 'License & Google', icon: 'settings' }
       ]
     },
@@ -274,6 +275,92 @@ export function createPlugin() {
           );
           if (!response.ok) return { error: 'Backend rejected OAuth initiation.' };
           return response.json();
+        }
+      },
+
+      // Returns all tracking pixel settings mapped to TrackingValues field names.
+      'tracking/settings': {
+        handler: async (ctx) => {
+          const [
+            gtmEnabled, gtmId,
+            ga4Enabled, ga4Id,
+            metaPixelEnabled, metaPixelId,
+            linkedInEnabled, linkedInPartnerId,
+            tiktokEnabled, tiktokPixelId,
+            bingEnabled, bingTagId,
+            pinterestEnabled, pinterestTagId,
+            nextdoorEnabled, nextdoorPixelId,
+          ] = await Promise.all([
+            ctx.kv.get<boolean>('settings:gtmEnabled'),
+            ctx.kv.get<string>('settings:gtmId'),
+            ctx.kv.get<boolean>('settings:ga4Enabled'),
+            ctx.kv.get<string>('settings:ga4Id'),
+            ctx.kv.get<boolean>('settings:metaPixelEnabled'),
+            ctx.kv.get<string>('settings:metaPixelId'),
+            ctx.kv.get<boolean>('settings:linkedInEnabled'),
+            ctx.kv.get<string>('settings:linkedInPartnerId'),
+            ctx.kv.get<boolean>('settings:tiktokEnabled'),
+            ctx.kv.get<string>('settings:tiktokPixelId'),
+            ctx.kv.get<boolean>('settings:bingEnabled'),
+            ctx.kv.get<string>('settings:bingTagId'),
+            ctx.kv.get<boolean>('settings:pinterestEnabled'),
+            ctx.kv.get<string>('settings:pinterestTagId'),
+            ctx.kv.get<boolean>('settings:nextdoorEnabled'),
+            ctx.kv.get<string>('settings:nextdoorPixelId'),
+          ]);
+          return {
+            gtmEnabled: gtmEnabled ?? false,
+            gtmId: gtmId ?? '',
+            ga4Enabled: ga4Enabled ?? false,
+            ga4Id: ga4Id ?? '',
+            metaEnabled: metaPixelEnabled ?? false,
+            metaId: metaPixelId ?? '',
+            linkedinEnabled: linkedInEnabled ?? false,
+            linkedinId: linkedInPartnerId ?? '',
+            tiktokEnabled: tiktokEnabled ?? false,
+            tiktokId: tiktokPixelId ?? '',
+            bingEnabled: bingEnabled ?? false,
+            bingId: bingTagId ?? '',
+            pinterestEnabled: pinterestEnabled ?? false,
+            pinterestId: pinterestTagId ?? '',
+            nextdoorEnabled: nextdoorEnabled ?? false,
+            nextdoorId: nextdoorPixelId ?? '',
+          };
+        }
+      },
+
+      // Saves tracking pixel settings from the custom UI back to the KV store.
+      'tracking/save': {
+        handler: async (ctx) => {
+          const body = await ctx.request.json() as {
+            gtmEnabled: boolean; gtmId: string;
+            ga4Enabled: boolean; ga4Id: string;
+            metaEnabled: boolean; metaId: string;
+            linkedinEnabled: boolean; linkedinId: string;
+            tiktokEnabled: boolean; tiktokId: string;
+            bingEnabled: boolean; bingId: string;
+            pinterestEnabled: boolean; pinterestId: string;
+            nextdoorEnabled: boolean; nextdoorId: string;
+          };
+          await Promise.all([
+            ctx.kv.set('settings:gtmEnabled', body.gtmEnabled),
+            ctx.kv.set('settings:gtmId', body.gtmId),
+            ctx.kv.set('settings:ga4Enabled', body.ga4Enabled),
+            ctx.kv.set('settings:ga4Id', body.ga4Id),
+            ctx.kv.set('settings:metaPixelEnabled', body.metaEnabled),
+            ctx.kv.set('settings:metaPixelId', body.metaId),
+            ctx.kv.set('settings:linkedInEnabled', body.linkedinEnabled),
+            ctx.kv.set('settings:linkedInPartnerId', body.linkedinId),
+            ctx.kv.set('settings:tiktokEnabled', body.tiktokEnabled),
+            ctx.kv.set('settings:tiktokPixelId', body.tiktokId),
+            ctx.kv.set('settings:bingEnabled', body.bingEnabled),
+            ctx.kv.set('settings:bingTagId', body.bingId),
+            ctx.kv.set('settings:pinterestEnabled', body.pinterestEnabled),
+            ctx.kv.set('settings:pinterestTagId', body.pinterestId),
+            ctx.kv.set('settings:nextdoorEnabled', body.nextdoorEnabled),
+            ctx.kv.set('settings:nextdoorPixelId', body.nextdoorId),
+          ]);
+          return { ok: true };
         }
       },
 

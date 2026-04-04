@@ -9,12 +9,13 @@ src/
   index.ts                  Plugin entry point — registers routes, actions, and frontend hooks
   types.ts                  Shared TypeScript interfaces
   admin/
-    Dashboard.tsx           Iframe embed of the my.roiknowledge.com dashboard
-    Settings.tsx            License activation, Google OAuth, GTM config, call tracking config
+    Dashboard.tsx           Iframe embed of the ROI Insights dashboard
+    Settings.tsx            License activation and Google OAuth connection
+    TrackingSettings.tsx    Analytics and pixel configuration UI
   frontend/
-    injector.ts             Injects GTM, md-roi.js, and call tracking script into page <head>/<body>
+    injector.ts             Injects tracking scripts into page <head>/<body>
   lib/
-    licensing.ts            License validation against dashboard.mosierdata.com + 24hr KV cache
+    licensing.ts            License validation with 24hr KV cache
     crypto.ts               Ed25519 signature verification via Web Crypto API
 manifest.json               EmDash submission manifest (capabilities + allowedHosts)
 ```

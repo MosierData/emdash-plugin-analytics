@@ -12,6 +12,7 @@ export function roiInsightsPlugin(): PluginDescriptor {
     adminEntry: '@mosierdata/emdash-plugin-roi-insights/admin',
     adminPages: [
       { path: '/dashboard', label: 'Marketing ROI', icon: 'chart' },
+      { path: '/tracking', label: 'Tracking Pixels', icon: 'tracking' },
       { path: '/settings', label: 'License & Google', icon: 'settings' }
     ],
     adminWidgets: []
