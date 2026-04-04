@@ -3,6 +3,9 @@ import type { LicenseCapability } from '../types';
 
 export interface InjectorSettings {
   gtmId: string;
+  ga4Id: string;
+  metaPixelId: string;
+  linkedInPartnerId: string;
   dniSwapNumber: string;
   dniScriptUrl: string;
   customHeadCode: string;
@@ -23,25 +26,74 @@ export function buildPageFragments(
 ): PageFragmentContribution[] {
   const fragments: PageFragmentContribution[] = [];
 
-  // 1. Google Tag Manager
+  // 1. Google Tag Manager — official inline loader (initializes dataLayer and
+  // pushes gtm.start before dynamically inserting gtm.js; required for consent
+  // management and timing-dependent tags to work correctly)
   if (settings.gtmId) {
     fragments.push({
-      kind: 'external-script',
+      kind: 'inline-script',
       placement: 'head',
-      src: `https://www.googletagmanager.com/gtm.js?id=${escapeJs(settings.gtmId)}`,
-      async: true,
+      content: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${escapeJs(settings.gtmId)}');`,
       id: 'gtm-script'
     });
-    // GTM noscript fallback — requires html kind for the <noscript> wrapper
     fragments.push({
       kind: 'html',
       placement: 'body:start',
-      content: `<!-- Google Tag Manager (noscript) -->\n<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${escapeHtml(settings.gtmId)}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`,
+      content: `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${escapeHtml(settings.gtmId)}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`,
       id: 'gtm-noscript'
     });
   }
 
-  // 2. md-roi.js dataLayer engine (always injected for valid licenses)
+  // 2. Google Analytics 4
+  if (settings.ga4Id) {
+    fragments.push({
+      kind: 'external-script',
+      placement: 'head',
+      src: `https://www.googletagmanager.com/gtag/js?id=${escapeJs(settings.ga4Id)}`,
+      async: true,
+      id: 'ga4-script'
+    });
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${escapeJs(settings.ga4Id)}');`,
+      id: 'ga4-config'
+    });
+  }
+
+  // 3. Meta (Facebook) Pixel
+  if (settings.metaPixelId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${escapeJs(settings.metaPixelId)}');fbq('track','PageView');`,
+      id: 'meta-pixel-script'
+    });
+    fragments.push({
+      kind: 'html',
+      placement: 'body:start',
+      content: `<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${escapeHtml(settings.metaPixelId)}&amp;ev=PageView&amp;noscript=1"/></noscript>`,
+      id: 'meta-pixel-noscript'
+    });
+  }
+
+  // 4. LinkedIn Insights Tag
+  if (settings.linkedInPartnerId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `window._linkedin_partner_id='${escapeJs(settings.linkedInPartnerId)}';window._linkedin_data_partner_ids=window._linkedin_data_partner_ids||[];window._linkedin_data_partner_ids.push(window._linkedin_partner_id);(function(l){if(!l){window.lintrk=function(a,b){window.lintrk.q.push([a,b])};window.lintrk.q=[]}var s=document.getElementsByTagName('script')[0];var b=document.createElement('script');b.type='text/javascript';b.async=true;b.src='https://snap.licdn.com/li.lms-analytics/insight.min.js';s.parentNode.insertBefore(b,s)})(window.lintrk);`,
+      id: 'linkedin-insight-script'
+    });
+    fragments.push({
+      kind: 'html',
+      placement: 'body:start',
+      content: `<noscript><img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=${escapeHtml(settings.linkedInPartnerId)}&amp;fmt=gif"/></noscript>`,
+      id: 'linkedin-insight-noscript'
+    });
+  }
+
+  // 5. md-roi.js dataLayer engine (always injected for valid licenses)
   fragments.push({
     kind: 'external-script',
     placement: 'head',
@@ -56,7 +108,7 @@ export function buildPageFragments(
     id: 'md-roi-config'
   });
 
-  // 3. AvidTrak DNI (Professional+ only)
+  // 6. AvidTrak DNI (Professional+ only)
   if (license.capabilities.includes('call_tracking') && settings.dniScriptUrl) {
     fragments.push({
       kind: 'external-script',
@@ -73,7 +125,7 @@ export function buildPageFragments(
     });
   }
 
-  // 4. Custom head / footer code (Free tier feature)
+  // 7. Custom head / footer code (Free tier feature)
   if (settings.customHeadCode) {
     fragments.push({ kind: 'html', placement: 'head', content: settings.customHeadCode, id: 'custom-head' });
   }

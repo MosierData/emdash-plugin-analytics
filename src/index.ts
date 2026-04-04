@@ -26,6 +26,24 @@ export function createPlugin() {
           description: 'e.g. GTM-XXXXXXX',
           default: ''
         },
+        ga4Id: {
+          type: 'string',
+          label: 'Google Analytics 4 Measurement ID',
+          description: 'e.g. G-XXXXXXXXXX',
+          default: ''
+        },
+        metaPixelId: {
+          type: 'string',
+          label: 'Meta (Facebook) Pixel ID',
+          description: 'Numeric ID from Meta Events Manager',
+          default: ''
+        },
+        linkedInPartnerId: {
+          type: 'string',
+          label: 'LinkedIn Insights Tag Partner ID',
+          description: 'Numeric Partner ID from LinkedIn Campaign Manager',
+          default: ''
+        },
         dniSwapNumber: {
           type: 'string',
           label: 'Website Phone Number to Swap',
@@ -79,9 +97,12 @@ export function createPlugin() {
         const license = await validateLicense(ctx);
         if (!license.isValid) return null;
 
-        const [gtmId, dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
+        const [gtmId, ga4Id, metaPixelId, linkedInPartnerId, dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
           await Promise.all([
             ctx.kv.get<string>('settings:gtmId'),
+            ctx.kv.get<string>('settings:ga4Id'),
+            ctx.kv.get<string>('settings:metaPixelId'),
+            ctx.kv.get<string>('settings:linkedInPartnerId'),
             ctx.kv.get<string>('settings:dniSwapNumber'),
             ctx.kv.get<string>('settings:dniScriptUrl'),
             ctx.kv.get<string>('settings:customHeadCode'),
@@ -91,6 +112,9 @@ export function createPlugin() {
 
         return buildPageFragments(license, {
           gtmId: gtmId ?? '',
+          ga4Id: ga4Id ?? '',
+          metaPixelId: metaPixelId ?? '',
+          linkedInPartnerId: linkedInPartnerId ?? '',
           dniSwapNumber: dniSwapNumber ?? '',
           dniScriptUrl: dniScriptUrl ?? '',
           customHeadCode: customHeadCode ?? '',
