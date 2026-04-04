@@ -10,6 +10,14 @@ export interface InjectorSettings {
   metaPixelId: string;
   linkedInEnabled: boolean;
   linkedInPartnerId: string;
+  tiktokEnabled: boolean;
+  tiktokPixelId: string;
+  bingEnabled: boolean;
+  bingTagId: string;
+  pinterestEnabled: boolean;
+  pinterestTagId: string;
+  nextdoorEnabled: boolean;
+  nextdoorPixelId: string;
   dniSwapNumber: string;
   dniScriptUrl: string;
   customHeadCode: string;
@@ -97,7 +105,59 @@ export function buildPageFragments(
     });
   }
 
-  // 5. md-roi.js dataLayer engine (always injected for valid licenses)
+  // 5. TikTok Pixel
+  if (settings.tiktokEnabled && settings.tiktokPixelId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var s=document.createElement("script");s.type="text/javascript",s.async=!0,s.src=r+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(s,a)};ttq.load('${escapeJs(settings.tiktokPixelId)}');ttq.page();}(window,document,'ttq');`,
+      id: 'tiktok-pixel-script'
+    });
+  }
+
+  // 6. Microsoft (Bing) UET Tag
+  if (settings.bingEnabled && settings.bingTagId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:'${escapeJs(settings.bingTagId)}',enableAutoSpaTracking:true};o.q=w[u],w[u]=new UET(o),w[u].push('pageLoad')},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=='loaded'&&s!=='complete'||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,'script','//bat.bing.com/bat.js','uetq');`,
+      id: 'bing-uet-script'
+    });
+  }
+
+  // 7. Pinterest Tag
+  if (settings.pinterestEnabled && settings.pinterestTagId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `!function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");pintrk('load','${escapeJs(settings.pinterestTagId)}');pintrk('page');`,
+      id: 'pinterest-tag-script'
+    });
+    fragments.push({
+      kind: 'html',
+      placement: 'body:start',
+      content: `<noscript><img height="1" width="1" style="display:none;" alt="" src="https://ct.pinterest.com/v3/?event=init&amp;tid=${escapeHtml(settings.pinterestTagId)}&amp;noscript=1"/></noscript>`,
+      id: 'pinterest-tag-noscript'
+    });
+  }
+
+  // 8. Nextdoor Pixel
+  if (settings.nextdoorEnabled && settings.nextdoorPixelId) {
+    fragments.push({
+      kind: 'inline-script',
+      placement: 'head',
+      content: `!function(e,n){var t,p;e.ndp||((t=e.ndp=function(){t.handleRequest?t.handleRequest.apply(t,arguments):t.queue.push(arguments)}).queue=[],t.v=1,(p=n.createElement(e="script")).async=!0,p.src="https://ads.nextdoor.com/public/pixel/ndp.js?id=${escapeJs(settings.nextdoorPixelId)}",(n=n.getElementsByTagName(e)[0]).parentNode.insertBefore(p,n))}(window,document);ndp('init','${escapeJs(settings.nextdoorPixelId)}',{});ndp('track','PAGE_VIEW');`,
+      id: 'nextdoor-pixel-script'
+    });
+    fragments.push({
+      kind: 'html',
+      placement: 'body:start',
+      content: `<noscript><img height="1" width="1" style="display:none" src="https://flask.nextdoor.com/pixel?pid=${escapeHtml(settings.nextdoorPixelId)}&amp;ev=PAGE_VIEW&amp;noscript=1"/></noscript>`,
+      id: 'nextdoor-pixel-noscript'
+    });
+  }
+
+  // 9. md-roi.js dataLayer engine (always injected for valid licenses)
   fragments.push({
     kind: 'external-script',
     placement: 'head',
@@ -112,7 +172,7 @@ export function buildPageFragments(
     id: 'md-roi-config'
   });
 
-  // 6. AvidTrak DNI (Professional+ only)
+  // 10. AvidTrak DNI (Professional+ only)
   if (license.capabilities.includes('call_tracking') && settings.dniScriptUrl) {
     fragments.push({
       kind: 'external-script',
@@ -129,7 +189,7 @@ export function buildPageFragments(
     });
   }
 
-  // 7. Custom head / footer code (Free tier feature)
+  // 11. Custom head / footer code (Free tier feature)
   if (settings.customHeadCode) {
     fragments.push({ kind: 'html', placement: 'head', content: settings.customHeadCode, id: 'custom-head' });
   }

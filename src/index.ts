@@ -64,6 +64,50 @@ export function createPlugin() {
           description: 'Numeric Partner ID from LinkedIn Campaign Manager',
           default: ''
         },
+        tiktokEnabled: {
+          type: 'boolean',
+          label: 'Enable TikTok Pixel',
+          default: false
+        },
+        tiktokPixelId: {
+          type: 'string',
+          label: 'TikTok Pixel ID',
+          description: 'Alphanumeric ID from TikTok Events Manager',
+          default: ''
+        },
+        bingEnabled: {
+          type: 'boolean',
+          label: 'Enable Microsoft (Bing) UET Tag',
+          default: false
+        },
+        bingTagId: {
+          type: 'string',
+          label: 'Microsoft UET Tag ID',
+          description: 'Numeric Tag ID from Microsoft Advertising',
+          default: ''
+        },
+        pinterestEnabled: {
+          type: 'boolean',
+          label: 'Enable Pinterest Tag',
+          default: false
+        },
+        pinterestTagId: {
+          type: 'string',
+          label: 'Pinterest Tag ID',
+          description: 'Numeric Tag ID from Pinterest Ads Manager',
+          default: ''
+        },
+        nextdoorEnabled: {
+          type: 'boolean',
+          label: 'Enable Nextdoor Pixel',
+          default: false
+        },
+        nextdoorPixelId: {
+          type: 'string',
+          label: 'Nextdoor Data Source ID',
+          description: 'UUID from Nextdoor Business Ads dashboard',
+          default: ''
+        },
         dniSwapNumber: {
           type: 'string',
           label: 'Website Phone Number to Swap',
@@ -122,6 +166,10 @@ export function createPlugin() {
           ga4Enabled, ga4Id,
           metaPixelEnabled, metaPixelId,
           linkedInEnabled, linkedInPartnerId,
+          tiktokEnabled, tiktokPixelId,
+          bingEnabled, bingTagId,
+          pinterestEnabled, pinterestTagId,
+          nextdoorEnabled, nextdoorPixelId,
           dniSwapNumber, dniScriptUrl,
           customHeadCode, customFooterCode,
           debug
@@ -134,6 +182,14 @@ export function createPlugin() {
           ctx.kv.get<string>('settings:metaPixelId'),
           ctx.kv.get<boolean>('settings:linkedInEnabled'),
           ctx.kv.get<string>('settings:linkedInPartnerId'),
+          ctx.kv.get<boolean>('settings:tiktokEnabled'),
+          ctx.kv.get<string>('settings:tiktokPixelId'),
+          ctx.kv.get<boolean>('settings:bingEnabled'),
+          ctx.kv.get<string>('settings:bingTagId'),
+          ctx.kv.get<boolean>('settings:pinterestEnabled'),
+          ctx.kv.get<string>('settings:pinterestTagId'),
+          ctx.kv.get<boolean>('settings:nextdoorEnabled'),
+          ctx.kv.get<string>('settings:nextdoorPixelId'),
           ctx.kv.get<string>('settings:dniSwapNumber'),
           ctx.kv.get<string>('settings:dniScriptUrl'),
           ctx.kv.get<string>('settings:customHeadCode'),
@@ -150,6 +206,14 @@ export function createPlugin() {
           metaPixelId: metaPixelId ?? '',
           linkedInEnabled: linkedInEnabled ?? false,
           linkedInPartnerId: linkedInPartnerId ?? '',
+          tiktokEnabled: tiktokEnabled ?? false,
+          tiktokPixelId: tiktokPixelId ?? '',
+          bingEnabled: bingEnabled ?? false,
+          bingTagId: bingTagId ?? '',
+          pinterestEnabled: pinterestEnabled ?? false,
+          pinterestTagId: pinterestTagId ?? '',
+          nextdoorEnabled: nextdoorEnabled ?? false,
+          nextdoorPixelId: nextdoorPixelId ?? '',
           dniSwapNumber: dniSwapNumber ?? '',
           dniScriptUrl: dniScriptUrl ?? '',
           customHeadCode: customHeadCode ?? '',
