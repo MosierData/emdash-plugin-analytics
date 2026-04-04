@@ -13,7 +13,7 @@ export function createPlugin() {
     // Simple user-configurable settings — auto-generates a settings form.
     // Values are stored by EmDash at individual settings:<field> KV keys.
     admin: {
-      entry: '@mosierdata/emdash-plugin-roi-insights/admin',
+      entry: '@mosierdata/emdash-plugin-analytics/admin',
       settingsSchema: {
         licenseKey: {
           type: 'secret',

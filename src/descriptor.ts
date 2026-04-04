@@ -8,8 +8,8 @@ export function roiInsightsPlugin(): PluginDescriptor {
   return {
     id: 'roi-insights',
     version: '1.0.0',
-    entrypoint: '@mosierdata/emdash-plugin-roi-insights',
-    adminEntry: '@mosierdata/emdash-plugin-roi-insights/admin',
+    entrypoint: '@mosierdata/emdash-plugin-analytics',
+    adminEntry: '@mosierdata/emdash-plugin-analytics/admin',
     adminPages: [
       { path: '/dashboard', label: 'Marketing ROI', icon: 'chart' },
       { path: '/tracking', label: 'Tracking Pixels', icon: 'tracking' },
