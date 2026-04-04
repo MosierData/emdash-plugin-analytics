@@ -159,10 +159,17 @@ export async function saveTrackingSettings(
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const expectedRaw = await kv.getRaw(TRACKING_SETTINGS_DOC_KEY);
-    const current: TrackingSettingsDocument =
-      expectedRaw === null
-        ? await loadLegacyTrackingDocument(ctx)
-        : (JSON.parse(expectedRaw) as TrackingSettingsDocument);
+    let current: TrackingSettingsDocument;
+    if (expectedRaw === null) {
+      current = await loadLegacyTrackingDocument(ctx);
+    } else {
+      // Merge live settings:* values (captures auto-form edits) with the canonical
+      // doc's revision (authoritative for CAS). This prevents a stale /tracking
+      // save from silently overwriting newer edits made through settingsSchema.
+      const canonicalDoc = JSON.parse(expectedRaw) as TrackingSettingsDocument;
+      const liveDoc = await loadLegacyTrackingDocument(ctx);
+      current = { ...liveDoc, settingsRevision: canonicalDoc.settingsRevision };
+    }
 
     if (
       body.settingsRevision !== undefined &&
