@@ -84,7 +84,7 @@ The free tier stays free forever. Paid tiers add AI intelligence and deeper attr
 
 **Business ($199/mo)** is for high-volume advertisers and agencies. The Ads Advisor watches your ad spend 24/7 — alerting you to budget overruns, underperforming campaigns, and Performance Max anomalies before they cost you. You also get the lowest call tracking rates, custom reporting, and MCP AI agent access to query your marketing data programmatically.
 
-**Founder's Club ($1,425 one-time)** — Lifetime access to Business tier features, available as a limited-time offer for early adopters. See [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) for availability.
+**Founder's Club ($4,495 one-time)** — Lifetime access to Business tier features, available as a limited-time offer for early adopters. See [ROI Insights](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) for availability.
 
 ### Does Upgrading Actually Save Money?
 
