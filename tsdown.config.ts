@@ -26,13 +26,4 @@ export default defineConfig([
     external: ['react', 'react/jsx-runtime', 'react-dom', 'emdash', /^@emdash-cms\//],
     outDir: 'dist',
   },
-  // Sandbox entry — fully self-contained ES module for Cloudflare Worker Loader
-  // No external imports; everything must be inlined for the isolate.
-  {
-    entry: { 'sandbox-entry': 'src/index.ts' },
-    format: 'esm',
-    dts: false,
-    noExternal: [/.*/],
-    outDir: 'dist',
-  },
 ]);

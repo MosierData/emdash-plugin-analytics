@@ -15,9 +15,6 @@
     "./admin": {
       "types": "./dist/admin.d.mts",
       "import": "./dist/admin.mjs"
-    },
-    "./sandbox": {
-      "import": "./dist/sandbox-entry.mjs"
     }
   },
   "files": [
