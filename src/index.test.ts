@@ -51,6 +51,17 @@ function makeCtx(kv: ReturnType<typeof makeKv>) {
   };
 }
 
+function makeCtxWithJson(kv: ReturnType<typeof makeKv>, jsonBody: unknown) {
+  const ctx = makeCtx(kv);
+  return {
+    ...ctx,
+    request: {
+      ...ctx.request,
+      json: vi.fn().mockResolvedValue(jsonBody)
+    }
+  };
+}
+
 // Extract hook and route handlers from the plugin config returned by createPlugin().
 // Works because definePlugin is mocked to return its argument directly.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,9 +70,30 @@ function getHandlers() {
   return {
     pageFragments: config.hooks['page:fragments'] as (event: object, ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
     validateRoute: config.routes['license/validate'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
-    statusRoute: config.routes['license/status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>
+    statusRoute: config.routes['license/status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    trackingSettings: config.routes['tracking/settings'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    trackingSave: config.routes['tracking/save'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>
   };
 }
+
+const EMPTY_TRACKING_BODY = {
+  gtmEnabled: false,
+  gtmId: '',
+  ga4Enabled: false,
+  ga4Id: '',
+  metaEnabled: false,
+  metaId: '',
+  linkedinEnabled: false,
+  linkedinId: '',
+  tiktokEnabled: false,
+  tiktokId: '',
+  bingEnabled: false,
+  bingId: '',
+  pinterestEnabled: false,
+  pinterestId: '',
+  nextdoorEnabled: false,
+  nextdoorId: ''
+};
 
 const VALID_LICENSE: LicenseData = {
   isValid: true,
@@ -180,5 +212,68 @@ describe('P2 — cold start auto-revalidation', () => {
 
     expect(mockValidate).toHaveBeenCalledWith(ctx);
     expect(result).toEqual(VALID_LICENSE);
+  });
+});
+
+// ── Tracking settings: optimistic concurrency (stale saves must not clobber) ──
+
+describe('tracking/settings + tracking/save revision', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('tracking/settings includes settingsRevision (0 when unset)', async () => {
+    const kv = makeKv({ 'settings:gtmId': 'GTM-1' });
+    const ctx = makeCtx(kv);
+    const { trackingSettings } = getHandlers();
+
+    const result = (await trackingSettings(ctx)) as { gtmId: string; settingsRevision: number };
+
+    expect(result.gtmId).toBe('GTM-1');
+    expect(result.settingsRevision).toBe(0);
+  });
+
+  it('tracking/save without settingsRevision still applies and bumps revision (legacy clients)', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { ...EMPTY_TRACKING_BODY, gtmId: 'GTM-NEW' });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: true, settingsRevision: 1 });
+    expect(kv.store.get('settings:gtmId')).toBe('GTM-NEW');
+    expect(kv.store.get('settings:trackingSettingsRevision')).toBe(1);
+  });
+
+  it('tracking/save with matching settingsRevision applies and increments', async () => {
+    const kv = makeKv({ 'settings:trackingSettingsRevision': 2, 'settings:gtmId': 'OLD' });
+    const ctx = makeCtxWithJson(kv, {
+      ...EMPTY_TRACKING_BODY,
+      settingsRevision: 2,
+      gtmId: 'NEW'
+    });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: true, settingsRevision: 3 });
+    expect(kv.store.get('settings:gtmId')).toBe('NEW');
+  });
+
+  it('tracking/save rejects stale settingsRevision without writing', async () => {
+    const kv = makeKv({
+      'settings:gtmId': 'KEEP',
+      'settings:trackingSettingsRevision': 5
+    });
+    const ctx = makeCtxWithJson(kv, {
+      ...EMPTY_TRACKING_BODY,
+      settingsRevision: 4,
+      gtmId: 'STALE'
+    });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: false, conflict: true, settingsRevision: 5 });
+    expect(kv.store.get('settings:gtmId')).toBe('KEEP');
+    expect(kv.store.get('settings:trackingSettingsRevision')).toBe(5);
   });
 });

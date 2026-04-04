@@ -290,6 +290,7 @@ export function createPlugin() {
             bingEnabled, bingTagId,
             pinterestEnabled, pinterestTagId,
             nextdoorEnabled, nextdoorPixelId,
+            settingsRevision,
           ] = await Promise.all([
             ctx.kv.get<boolean>('settings:gtmEnabled'),
             ctx.kv.get<string>('settings:gtmId'),
@@ -307,6 +308,7 @@ export function createPlugin() {
             ctx.kv.get<string>('settings:pinterestTagId'),
             ctx.kv.get<boolean>('settings:nextdoorEnabled'),
             ctx.kv.get<string>('settings:nextdoorPixelId'),
+            ctx.kv.get<number>('settings:trackingSettingsRevision'),
           ]);
           return {
             gtmEnabled: gtmEnabled ?? false,
@@ -325,6 +327,7 @@ export function createPlugin() {
             pinterestId: pinterestTagId ?? '',
             nextdoorEnabled: nextdoorEnabled ?? false,
             nextdoorId: nextdoorPixelId ?? '',
+            settingsRevision: settingsRevision ?? 0,
           };
         }
       },
@@ -333,6 +336,7 @@ export function createPlugin() {
       'tracking/save': {
         handler: async (ctx) => {
           const body = await ctx.request.json() as {
+            settingsRevision?: number;
             gtmEnabled: boolean; gtmId: string;
             ga4Enabled: boolean; ga4Id: string;
             metaEnabled: boolean; metaId: string;
@@ -342,6 +346,18 @@ export function createPlugin() {
             pinterestEnabled: boolean; pinterestId: string;
             nextdoorEnabled: boolean; nextdoorId: string;
           };
+          const currentRev = (await ctx.kv.get<number>('settings:trackingSettingsRevision')) ?? 0;
+          if (
+            body.settingsRevision !== undefined &&
+            body.settingsRevision !== currentRev
+          ) {
+            return {
+              ok: false as const,
+              conflict: true as const,
+              settingsRevision: currentRev,
+            };
+          }
+          const nextRev = currentRev + 1;
           await Promise.all([
             ctx.kv.set('settings:gtmEnabled', body.gtmEnabled),
             ctx.kv.set('settings:gtmId', body.gtmId),
@@ -359,8 +375,9 @@ export function createPlugin() {
             ctx.kv.set('settings:pinterestTagId', body.pinterestId),
             ctx.kv.set('settings:nextdoorEnabled', body.nextdoorEnabled),
             ctx.kv.set('settings:nextdoorPixelId', body.nextdoorId),
+            ctx.kv.set('settings:trackingSettingsRevision', nextRev),
           ]);
-          return { ok: true };
+          return { ok: true as const, settingsRevision: nextRev };
         }
       },
 

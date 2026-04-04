@@ -1232,6 +1232,12 @@ function TrackingSettingsPage({ values, onChange }: TrackingSettingsPageProps) {
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
+type TrackingSettingsPayload = TrackingValues & { settingsRevision: number };
+
+type TrackingSaveResponse =
+  | { ok: true; settingsRevision: number }
+  | { ok: false; conflict: true; settingsRevision: number };
+
 export function TrackingSettingsAdmin() {
   const api = usePluginAPI();
   const [values, setValues] = useState<TrackingValues | null>(null);
@@ -1240,26 +1246,61 @@ export function TrackingSettingsAdmin() {
   // Serialized save queue: only one request in-flight at a time.
   // If values change while a request is in-flight, the latest snapshot is held
   // in savePending and dispatched immediately when the current request settles.
-  // This prevents an earlier slow response from overwriting a newer fast one.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveInFlight = useRef(false);
   const savePending = useRef<TrackingValues | null>(null);
+  // Server revision for optimistic concurrency (rejects out-of-order snapshots).
+  const serverRevisionRef = useRef(0);
+  // Latest form state for conflict retries (always matches what the user sees).
+  const latestValuesRef = useRef<TrackingValues | null>(null);
+  // Ignore late responses from superseded HTTP requests.
+  const saveRequestId = useRef(0);
 
   useEffect(() => {
-    void api.get<TrackingValues>('tracking/settings').then(setValues);
+    void api
+      .get<TrackingValues & { settingsRevision?: number }>('tracking/settings')
+      .then((data) => {
+        const { settingsRevision, ...rest } = data;
+        serverRevisionRef.current = settingsRevision ?? 0;
+        latestValuesRef.current = rest;
+        setValues(rest);
+      });
   }, [api]);
 
   const dispatchSave = useCallback(
     (snapshot: TrackingValues) => {
+      const requestId = ++saveRequestId.current;
       saveInFlight.current = true;
       savePending.current = null;
+      const payload: TrackingSettingsPayload = {
+        ...snapshot,
+        settingsRevision: serverRevisionRef.current,
+      };
       void api
-        .post<{ ok: boolean }>('tracking/save', snapshot)
-        .then(() => {
+        .post<TrackingSaveResponse>('tracking/save', payload)
+        .then((res) => {
+          if (requestId !== saveRequestId.current) {
+            return;
+          }
+          if (res.ok === false && res.conflict) {
+            serverRevisionRef.current = res.settingsRevision;
+            saveInFlight.current = false;
+            const latest = latestValuesRef.current;
+            if (latest) {
+              dispatchSave(latest);
+            }
+            return;
+          }
+          if (!res.ok || typeof res.settingsRevision !== 'number') {
+            saveInFlight.current = false;
+            savePending.current = null;
+            setSaveStatus('error');
+            return;
+          }
+          serverRevisionRef.current = res.settingsRevision;
           saveInFlight.current = false;
           const queued = savePending.current;
           if (queued) {
-            // A newer snapshot arrived while we were in-flight — send it now.
             dispatchSave(queued);
           } else {
             setSaveStatus('saved');
@@ -1267,6 +1308,9 @@ export function TrackingSettingsAdmin() {
           }
         })
         .catch(() => {
+          if (requestId !== saveRequestId.current) {
+            return;
+          }
           saveInFlight.current = false;
           savePending.current = null;
           setSaveStatus('error');
@@ -1277,14 +1321,13 @@ export function TrackingSettingsAdmin() {
 
   const handleChange = useCallback(
     (next: TrackingValues) => {
+      latestValuesRef.current = next;
       setValues(next);
       setSaveStatus('saving');
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         if (saveInFlight.current) {
-          // Request already in-flight — queue this snapshot; dispatchSave will
-          // pick it up the moment the current request settles.
           savePending.current = next;
         } else {
           dispatchSave(next);
