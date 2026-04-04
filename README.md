@@ -14,7 +14,7 @@ src/
   frontend/
     injector.ts             Injects GTM, md-roi.js, and call tracking script into page <head>/<body>
   lib/
-    licensing.ts            License validation against mdm.mosierdata.com + 24hr KV cache
+    licensing.ts            License validation against dashboard.mosierdata.com + 24hr KV cache
     crypto.ts               Ed25519 signature verification via Web Crypto API
 manifest.json               EmDash submission manifest (capabilities + allowedHosts)
 ```
