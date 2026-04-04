@@ -131,7 +131,7 @@ Add to your `astro.config.mjs`:
 
 ```js
 import emdash from "emdash/astro";
-import roiInsights from "@mosierdata/emdash-plugin-analytics";
+import roiInsights from "@mosierdata/emdash-plugin-analytics/descriptor";
 
 export default defineConfig({
   integrations: [
