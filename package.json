@@ -5,25 +5,26 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     },
     "./descriptor": {
-      "types": "./dist/descriptor.d.ts",
-      "import": "./dist/descriptor.js"
+      "types": "./dist/descriptor.d.mts",
+      "import": "./dist/descriptor.mjs"
     },
     "./admin": {
-      "types": "./dist/admin.d.ts",
-      "import": "./dist/admin.js"
-    },
-    "./sandbox": {
-      "import": "./dist/sandbox-entry.js"
+      "types": "./dist/admin.d.mts",
+      "import": "./dist/admin.mjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "patches"
+  ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "postinstall": "patch-package",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -31,13 +32,14 @@
     "publish": "emdash plugin publish --build"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "emdash": "^0.1.0",
     "jsdom": "^24.0.0",
-    "tsup": "^8.0.0",
+    "tsdown": "0.20.3",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
@@ -45,5 +47,8 @@
     "@emdash-cms/admin": "*",
     "emdash": "^0.1.0",
     "react": "^18.0.0"
+  },
+  "dependencies": {
+    "patch-package": "^8.0.1"
   }
 }

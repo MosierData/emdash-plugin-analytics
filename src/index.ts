@@ -2,6 +2,13 @@ import { definePlugin } from 'emdash';
 import type { LicenseData } from './types';
 import { validateLicense, CACHE_KEY } from './lib/licensing';
 import { buildPageFragments } from './frontend/injector';
+import {
+  documentToApiResponse,
+  ensureCanonicalDocExists,
+  loadTrackingSettingsDocument,
+  saveTrackingSettings,
+  type TrackingSaveBody,
+} from './lib/trackingSettingsDocument';
 
 export function createPlugin() {
   return definePlugin({
@@ -20,10 +27,92 @@ export function createPlugin() {
           label: 'License Key',
           description: "Get this from your MosierData portal. Prefix: qdsh_"
         },
+        gtmEnabled: {
+          type: 'boolean',
+          label: 'Enable Google Tag Manager',
+          default: false
+        },
         gtmId: {
           type: 'string',
           label: 'Google Tag Manager ID',
           description: 'e.g. GTM-XXXXXXX',
+          default: ''
+        },
+        ga4Enabled: {
+          type: 'boolean',
+          label: 'Enable Google Analytics 4',
+          default: false
+        },
+        ga4Id: {
+          type: 'string',
+          label: 'Google Analytics 4 Measurement ID',
+          description: 'e.g. G-XXXXXXXXXX',
+          default: ''
+        },
+        metaPixelEnabled: {
+          type: 'boolean',
+          label: 'Enable Meta (Facebook) Pixel',
+          default: false
+        },
+        metaPixelId: {
+          type: 'string',
+          label: 'Meta (Facebook) Pixel ID',
+          description: 'Numeric ID from Meta Events Manager',
+          default: ''
+        },
+        linkedInEnabled: {
+          type: 'boolean',
+          label: 'Enable LinkedIn Insights Tag',
+          default: false
+        },
+        linkedInPartnerId: {
+          type: 'string',
+          label: 'LinkedIn Insights Tag Partner ID',
+          description: 'Numeric Partner ID from LinkedIn Campaign Manager',
+          default: ''
+        },
+        tiktokEnabled: {
+          type: 'boolean',
+          label: 'Enable TikTok Pixel',
+          default: false
+        },
+        tiktokPixelId: {
+          type: 'string',
+          label: 'TikTok Pixel ID',
+          description: 'Alphanumeric ID from TikTok Events Manager',
+          default: ''
+        },
+        bingEnabled: {
+          type: 'boolean',
+          label: 'Enable Microsoft (Bing) UET Tag',
+          default: false
+        },
+        bingTagId: {
+          type: 'string',
+          label: 'Microsoft UET Tag ID',
+          description: 'Numeric Tag ID from Microsoft Advertising',
+          default: ''
+        },
+        pinterestEnabled: {
+          type: 'boolean',
+          label: 'Enable Pinterest Tag',
+          default: false
+        },
+        pinterestTagId: {
+          type: 'string',
+          label: 'Pinterest Tag ID',
+          description: 'Numeric Tag ID from Pinterest Ads Manager',
+          default: ''
+        },
+        nextdoorEnabled: {
+          type: 'boolean',
+          label: 'Enable Nextdoor Pixel',
+          default: false
+        },
+        nextdoorPixelId: {
+          type: 'string',
+          label: 'Nextdoor Data Source ID',
+          description: 'UUID from Nextdoor Business Ads dashboard',
           default: ''
         },
         dniSwapNumber: {
@@ -58,6 +147,7 @@ export function createPlugin() {
       },
       pages: [
         { path: '/dashboard', label: 'Marketing ROI', icon: 'chart' },
+        { path: '/tracking', label: 'Tracking Pixels', icon: 'tracking' },
         { path: '/settings', label: 'License & Google', icon: 'settings' }
       ]
     },
@@ -79,23 +169,38 @@ export function createPlugin() {
         const license = await validateLicense(ctx);
         if (!license.isValid) return null;
 
-        const [gtmId, dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
+        const tracking = await loadTrackingSettingsDocument(ctx);
+        const [dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
           await Promise.all([
-            ctx.kv.get<string>('settings:gtmId'),
             ctx.kv.get<string>('settings:dniSwapNumber'),
             ctx.kv.get<string>('settings:dniScriptUrl'),
             ctx.kv.get<string>('settings:customHeadCode'),
             ctx.kv.get<string>('settings:customFooterCode'),
-            ctx.kv.get<boolean>('settings:debug')
+            ctx.kv.get<boolean>('settings:debug'),
           ]);
 
         return buildPageFragments(license, {
-          gtmId: gtmId ?? '',
+          gtmEnabled: tracking.gtmEnabled,
+          gtmId: tracking.gtmId,
+          ga4Enabled: tracking.ga4Enabled,
+          ga4Id: tracking.ga4Id,
+          metaPixelEnabled: tracking.metaEnabled,
+          metaPixelId: tracking.metaId,
+          linkedInEnabled: tracking.linkedinEnabled,
+          linkedInPartnerId: tracking.linkedinId,
+          tiktokEnabled: tracking.tiktokEnabled,
+          tiktokPixelId: tracking.tiktokId,
+          bingEnabled: tracking.bingEnabled,
+          bingTagId: tracking.bingId,
+          pinterestEnabled: tracking.pinterestEnabled,
+          pinterestTagId: tracking.pinterestId,
+          nextdoorEnabled: tracking.nextdoorEnabled,
+          nextdoorPixelId: tracking.nextdoorId,
           dniSwapNumber: dniSwapNumber ?? '',
           dniScriptUrl: dniScriptUrl ?? '',
           customHeadCode: customHeadCode ?? '',
           customFooterCode: customFooterCode ?? '',
-          debug: debug ?? false
+          debug: debug ?? false,
         });
       }
     },
@@ -151,6 +256,25 @@ export function createPlugin() {
           );
           if (!response.ok) return { error: 'Backend rejected OAuth initiation.' };
           return response.json();
+        }
+      },
+
+      // Returns all tracking pixel settings mapped to TrackingValues field names.
+      'tracking/settings': {
+        handler: async (ctx) => {
+          const doc = await loadTrackingSettingsDocument(ctx);
+          // Snapshot current state so saveTrackingSettings can detect races
+          // with the settings-schema form even on first-ever /tracking load.
+          await ensureCanonicalDocExists(ctx, doc);
+          return documentToApiResponse(doc);
+        }
+      },
+
+      // Saves tracking pixel settings from the custom UI back to the KV store.
+      'tracking/save': {
+        handler: async (ctx) => {
+          const body = await ctx.request.json() as TrackingSaveBody;
+          return saveTrackingSettings(ctx, body);
         }
       },
 

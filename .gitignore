@@ -36,3 +36,6 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+
+# emdash bundle workspace
+.emdash-bundle-tmp

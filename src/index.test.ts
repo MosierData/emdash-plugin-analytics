@@ -33,13 +33,46 @@ const mockValidate = vi.mocked(validateLicense);
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeKv(initial: Record<string, unknown> = {}) {
-  const store = new Map<string, unknown>(Object.entries(initial));
-  return {
-    store,
-    get: vi.fn(async <T>(key: string) => (store.get(key) as T) ?? null),
-    set: vi.fn(async (key: string, value: unknown) => { store.set(key, value); }),
-    delete: vi.fn(async (key: string) => { store.delete(key); })
+  const raw = new Map<string, string>();
+  for (const [k, v] of Object.entries(initial)) {
+    raw.set(k, JSON.stringify(v));
+  }
+  const getParsed = <T>(key: string): T | null => {
+    const s = raw.get(key);
+    if (s === undefined) return null;
+    return JSON.parse(s) as T;
   };
+  const kv = {
+    raw,
+    get: vi.fn(async <T>(key: string) => getParsed<T>(key)),
+    set: vi.fn(async (key: string, value: unknown) => {
+      raw.set(key, JSON.stringify(value));
+    }),
+    delete: vi.fn(async (key: string) => {
+      raw.delete(key);
+    }),
+    getRaw: vi.fn(async (key: string) => raw.get(key) ?? null),
+    commitIfValueUnchanged: vi.fn(
+      async (key: string, expectedRaw: string | null, newValue: unknown) => {
+        const cur = raw.get(key);
+        const curRaw = cur === undefined ? null : cur;
+        if (expectedRaw === null) {
+          if (curRaw !== null) return false;
+          raw.set(key, JSON.stringify(newValue));
+          return true;
+        }
+        if (curRaw !== expectedRaw) return false;
+        raw.set(key, JSON.stringify(newValue));
+        return true;
+      },
+    ),
+  };
+  return kv;
+}
+
+function kvPeek(kv: ReturnType<typeof makeKv>, key: string): unknown {
+  const s = kv.raw.get(key);
+  return s === undefined ? undefined : JSON.parse(s);
 }
 
 function makeCtx(kv: ReturnType<typeof makeKv>) {
@@ -51,6 +84,17 @@ function makeCtx(kv: ReturnType<typeof makeKv>) {
   };
 }
 
+function makeCtxWithJson(kv: ReturnType<typeof makeKv>, jsonBody: unknown) {
+  const ctx = makeCtx(kv);
+  return {
+    ...ctx,
+    request: {
+      ...ctx.request,
+      json: vi.fn().mockResolvedValue(jsonBody)
+    }
+  };
+}
+
 // Extract hook and route handlers from the plugin config returned by createPlugin().
 // Works because definePlugin is mocked to return its argument directly.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,9 +103,30 @@ function getHandlers() {
   return {
     pageFragments: config.hooks['page:fragments'] as (event: object, ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
     validateRoute: config.routes['license/validate'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
-    statusRoute: config.routes['license/status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>
+    statusRoute: config.routes['license/status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    trackingSettings: config.routes['tracking/settings'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    trackingSave: config.routes['tracking/save'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>
   };
 }
+
+const EMPTY_TRACKING_BODY = {
+  gtmEnabled: false,
+  gtmId: '',
+  ga4Enabled: false,
+  ga4Id: '',
+  metaEnabled: false,
+  metaId: '',
+  linkedinEnabled: false,
+  linkedinId: '',
+  tiktokEnabled: false,
+  tiktokId: '',
+  bingEnabled: false,
+  bingId: '',
+  pinterestEnabled: false,
+  pinterestId: '',
+  nextdoorEnabled: false,
+  nextdoorId: ''
+};
 
 const VALID_LICENSE: LicenseData = {
   isValid: true,
@@ -180,5 +245,108 @@ describe('P2 — cold start auto-revalidation', () => {
 
     expect(mockValidate).toHaveBeenCalledWith(ctx);
     expect(result).toEqual(VALID_LICENSE);
+  });
+});
+
+// ── Tracking settings: optimistic concurrency (stale saves must not clobber) ──
+
+describe('tracking/settings + tracking/save revision', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('tracking/settings includes settingsRevision (0 when unset)', async () => {
+    const kv = makeKv({ 'settings:gtmId': 'GTM-1' });
+    const ctx = makeCtx(kv);
+    const { trackingSettings } = getHandlers();
+
+    const result = (await trackingSettings(ctx)) as { gtmId: string; settingsRevision: number };
+
+    expect(result.gtmId).toBe('GTM-1');
+    expect(result.settingsRevision).toBe(0);
+  });
+
+  it('tracking/save without settingsRevision still applies and bumps revision (legacy clients)', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { ...EMPTY_TRACKING_BODY, gtmId: 'GTM-NEW' });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: true, settingsRevision: 1 });
+    expect(kvPeek(kv, 'settings:gtmId')).toBe('GTM-NEW');
+    expect(kvPeek(kv, 'settings:trackingSettingsRevision')).toBe(1);
+  });
+
+  it('tracking/save with matching settingsRevision applies and increments', async () => {
+    const kv = makeKv({ 'settings:trackingSettingsRevision': 2, 'settings:gtmId': 'OLD' });
+    const ctx = makeCtxWithJson(kv, {
+      ...EMPTY_TRACKING_BODY,
+      settingsRevision: 2,
+      gtmId: 'NEW'
+    });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: true, settingsRevision: 3 });
+    expect(kvPeek(kv, 'settings:gtmId')).toBe('NEW');
+  });
+
+  it('tracking/save rejects stale settingsRevision without writing', async () => {
+    const kv = makeKv({
+      'settings:gtmId': 'KEEP',
+      'settings:trackingSettingsRevision': 5
+    });
+    const ctx = makeCtxWithJson(kv, {
+      ...EMPTY_TRACKING_BODY,
+      settingsRevision: 4,
+      gtmId: 'STALE'
+    });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: false, conflict: true, settingsRevision: 5 });
+    expect(kvPeek(kv, 'settings:gtmId')).toBe('KEEP');
+    expect(kvPeek(kv, 'settings:trackingSettingsRevision')).toBe(5);
+  });
+
+  it('tracking/save rejects stale revision when canonical document is authoritative', async () => {
+    const doc = { settingsRevision: 5, ...EMPTY_TRACKING_BODY, gtmId: 'KEEP' };
+    const kv = makeKv({
+      'state:trackingSettingsDoc': doc,
+      'settings:gtmId': 'KEEP',
+      'settings:trackingSettingsRevision': 5
+    });
+    const ctx = makeCtxWithJson(kv, {
+      ...EMPTY_TRACKING_BODY,
+      settingsRevision: 4,
+      gtmId: 'STALE'
+    });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: false, conflict: true, settingsRevision: 5 });
+    expect(kvPeek(kv, 'settings:gtmId')).toBe('KEEP');
+    expect(kvPeek(kv, 'state:trackingSettingsDoc')).toEqual(doc);
+  });
+
+  it('tracking/save retries when CAS loses a race (same expected raw)', async () => {
+    const kv = makeKv({ 'settings:trackingSettingsRevision': 0 });
+    const orig = kv.commitIfValueUnchanged.getMockImplementation()!;
+    let attempts = 0;
+    kv.commitIfValueUnchanged.mockImplementation(async (key, expectedRaw, newValue) => {
+      attempts++;
+      if (attempts < 3) return false;
+      return orig(key, expectedRaw, newValue);
+    });
+    const ctx = makeCtxWithJson(kv, { ...EMPTY_TRACKING_BODY, gtmId: 'OK' });
+    const { trackingSave } = getHandlers();
+
+    const result = await trackingSave(ctx);
+
+    expect(result).toEqual({ ok: true, settingsRevision: 1 });
+    expect(kvPeek(kv, 'settings:gtmId')).toBe('OK');
+    expect(attempts).toBe(3);
   });
 });

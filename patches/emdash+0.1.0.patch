@@ -1,0 +1,153 @@
+diff --git a/node_modules/emdash/dist/apply-Bjfq_b4-.mjs b/node_modules/emdash/dist/apply-Bjfq_b4-.mjs
+index 7d6ed8f..225baff 100644
+--- a/node_modules/emdash/dist/apply-Bjfq_b4-.mjs
++++ b/node_modules/emdash/dist/apply-Bjfq_b4-.mjs
+@@ -178,6 +178,26 @@ var OptionsRepository = class {
+ 		if (!row) return null;
+ 		return JSON.parse(row.value);
+ 	}
++	async getRaw(name) {
++		const row = await this.db.selectFrom("options").select("value").where("name", "=", name).executeTakeFirst();
++		if (!row) return null;
++		return row.value;
++	}
++	async commitIfValueUnchanged(name, expectedRaw, newValue) {
++		const newSer = JSON.stringify(newValue);
++		if (expectedRaw === null) {
++			const cur = await this.getRaw(name);
++			if (cur !== null) return false;
++			try {
++				await this.db.insertInto("options").values({ name, value: newSer }).execute();
++				return true;
++			} catch {
++				return false;
++			}
++		}
++		const result = await this.db.updateTable("options").set({ value: newSer }).where("name", "=", name).where("value", "=", expectedRaw).executeTakeFirst();
++		return Number(result.numUpdatedRows ?? 0) > 0;
++	}
+ 	/**
+ 	* Get an option value with a default
+ 	*/
+diff --git a/node_modules/emdash/dist/search-DG603UrT.mjs b/node_modules/emdash/dist/search-DG603UrT.mjs
+index a7d99e7..d682e8b 100644
+--- a/node_modules/emdash/dist/search-DG603UrT.mjs
++++ b/node_modules/emdash/dist/search-DG603UrT.mjs
+@@ -14,7 +14,7 @@ import { i as pluginManifestSchema } from "./manifest-schema-Dcl0R6nM.mjs";
+ import { t as generatePreviewToken } from "./tokens-DpgrkrXK.mjs";
+ import { sql } from "kysely";
+ import { ulid } from "ulidx";
+-import { z } from "astro/zod";
++import { z } from "zod";
+ import { AsyncLocalStorage } from "node:async_hooks";
+ import { z as z$1 } from "zod";
+ import { createGzipDecoder, unpackTar } from "modern-tar";
+@@ -5262,6 +5262,12 @@ function createKVAccess(optionsRepo, pluginId) {
+ 				value
+ 			});
+ 			return result;
++		},
++		async getRaw(key) {
++			return optionsRepo.getRaw(`${prefix}${key}`);
++		},
++		async commitIfValueUnchanged(key, expectedRaw, newValue) {
++			return optionsRepo.commitIfValueUnchanged(`${prefix}${key}`, expectedRaw, newValue);
+ 		}
+ 	};
+ }
+diff --git a/node_modules/emdash/src/database/repositories/options.ts b/node_modules/emdash/src/database/repositories/options.ts
+index cb7ced2..c62ebe4 100644
+--- a/node_modules/emdash/src/database/repositories/options.ts
++++ b/node_modules/emdash/src/database/repositories/options.ts
+@@ -26,6 +26,49 @@ export class OptionsRepository {
+ 		return JSON.parse(row.value) as T;
+ 	}
+ 
++	/**
++	 * Raw JSON text as stored in the options row (for compare-and-swap).
++	 */
++	async getRaw(name: string): Promise<string | null> {
++		const row = await this.db
++			.selectFrom("options")
++			.select("value")
++			.where("name", "=", name)
++			.executeTakeFirst();
++
++		if (!row) return null;
++		return row.value;
++	}
++
++	/**
++	 * Writes a value only if the row is absent (expectedRaw === null) or the
++	 * stored JSON text still equals expectedRaw. Returns whether the write ran.
++	 */
++	async commitIfValueUnchanged(
++		name: string,
++		expectedRaw: string | null,
++		newValue: unknown,
++	): Promise<boolean> {
++		const newSer = JSON.stringify(newValue);
++		if (expectedRaw === null) {
++			const cur = await this.getRaw(name);
++			if (cur !== null) return false;
++			try {
++				await this.db.insertInto("options").values({ name, value: newSer }).execute();
++				return true;
++			} catch {
++				return false;
++			}
++		}
++		const result = await this.db
++			.updateTable("options")
++			.set({ value: newSer })
++			.where("name", "=", name)
++			.where("value", "=", expectedRaw)
++			.executeTakeFirst();
++		return Number(result.numUpdatedRows ?? 0) > 0;
++	}
++
+ 	/**
+ 	 * Get an option value with a default
+ 	 */
+diff --git a/node_modules/emdash/src/plugins/context.ts b/node_modules/emdash/src/plugins/context.ts
+index 80927e7..8bb9865 100644
+--- a/node_modules/emdash/src/plugins/context.ts
++++ b/node_modules/emdash/src/plugins/context.ts
+@@ -79,6 +79,18 @@ export function createKVAccess(optionsRepo: OptionsRepository, pluginId: string)
+ 			}
+ 			return result;
+ 		},
++
++		async getRaw(key: string): Promise<string | null> {
++			return optionsRepo.getRaw(`${prefix}${key}`);
++		},
++
++		async commitIfValueUnchanged(
++			key: string,
++			expectedRaw: string | null,
++			newValue: unknown,
++		): Promise<boolean> {
++			return optionsRepo.commitIfValueUnchanged(`${prefix}${key}`, expectedRaw, newValue);
++		},
+ 	};
+ }
+ 
+diff --git a/node_modules/emdash/src/plugins/types.ts b/node_modules/emdash/src/plugins/types.ts
+index 76a262d..1a0d888 100644
+--- a/node_modules/emdash/src/plugins/types.ts
++++ b/node_modules/emdash/src/plugins/types.ts
+@@ -159,6 +159,14 @@ export interface KVAccess {
+ 	set(key: string, value: unknown): Promise<void>;
+ 	delete(key: string): Promise<boolean>;
+ 	list(prefix?: string): Promise<Array<{ key: string; value: unknown }>>;
++	/** Raw JSON text for the option row (compare-and-swap). */
++	getRaw(key: string): Promise<string | null>;
++	/** Set only if absent (expectedRaw null) or stored JSON text matches. */
++	commitIfValueUnchanged(
++		key: string,
++		expectedRaw: string | null,
++		newValue: unknown,
++	): Promise<boolean>;
+ }
+ 
+ /**
