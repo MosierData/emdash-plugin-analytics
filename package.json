@@ -1,5 +1,5 @@
 {
-  "name": "@mosierdata/emdash-plugin-roi-insights",
+  "name": "@mosierdata/emdash-plugin-analytics",
   "version": "1.0.0",
   "description": "Tag Manager, Call Tracking, and Marketing Analytics for EmDash",
   "type": "module",

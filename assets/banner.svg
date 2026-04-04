@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" viewBox="0 0 680 200" height="400">
+<rect x="0" y="0" width="680" height="200" fill="#0f172a"/>
+<rect x="0" y="196" width="680" height="4" fill="#f47c3c"/>
+<circle cx="600" cy="100" r="180" fill="#162038" opacity="0.6"/>
+<circle cx="640" cy="50" r="100" fill="#1a2848" opacity="0.4"/>
+<circle cx="560" cy="170" r="70" fill="#162038" opacity="0.3"/>
+<defs>
+  <clipPath id="cb1"><rect x="68" y="130" width="16" height="26"/></clipPath>
+  <clipPath id="cb2"><rect x="142" y="87" width="16" height="69"/></clipPath>
+  <clipPath id="cb3"><rect x="123" y="100" width="17" height="56"/></clipPath>
+  <clipPath id="cb4"><rect x="105" y="119" width="16" height="37"/></clipPath>
+  <clipPath id="cb5"><rect x="86" y="119" width="17" height="37"/></clipPath>
+  <clipPath id="ct"><rect x="68" y="68" width="95" height="75"/></clipPath>
+  <clipPath id="cm"><rect x="15" y="17" width="106" height="102"/></clipPath>
+</defs>
+<g transform="translate(40, 44) scale(0.62)">
+  <g clip-path="url(#cb1)"><path fill="#60b444" d="M 68.394531 155.507812 L 83.902344 155.507812 L 83.902344 130.808594 L 68.394531 145.824219 Z"/></g>
+  <g clip-path="url(#cb2)"><path fill="#60b444" d="M 151.535156 87.910156 L 142.015625 97.765625 L 142.015625 155.507812 L 157.523438 155.507812 L 157.523438 93.703125 L 157.507812 93.765625 Z"/></g>
+  <g clip-path="url(#cb3)"><path fill="#60b444" d="M 123.597656 155.347656 L 139.101562 155.347656 L 139.101562 100.785156 L 123.597656 116.847656 Z"/></g>
+  <g clip-path="url(#cb4)"><path fill="#60b444" d="M 105.175781 126.847656 L 105.175781 155.347656 L 120.683594 155.347656 L 120.683594 119.863281 L 110.179688 130.742188 Z"/></g>
+  <g clip-path="url(#cb5)"><path fill="#60b444" d="M 86.753906 127.886719 L 86.753906 155.347656 L 102.261719 155.347656 L 102.261719 124.582031 L 95.558594 119.363281 Z"/></g>
+  <g clip-path="url(#ct)"><path fill="#f47c3c" d="M 162.46875 68.421875 L 157.148438 90.648438 L 157.035156 91.125 L 151.484375 85.691406 L 123.3125 114.871094 L 120.398438 117.886719 L 110.070312 128.582031 L 95.46875 117.214844 L 68.933594 142.914062 L 68.933594 131.765625 L 72.324219 128.480469 L 94.914062 106.609375 L 109.328125 117.832031 L 145.769531 80.089844 L 140.53125 74.957031 Z"/></g>
+  <g clip-path="url(#cm)"><path fill="#ffffff" d="M 119.65625 112.019531 L 96.613281 88.976562 C 101.988281 81.589844 105.164062 72.503906 105.164062 62.6875 C 105.164062 37.988281 85.066406 17.890625 60.367188 17.890625 C 35.667969 17.890625 15.570312 37.988281 15.570312 62.6875 C 15.570312 87.390625 35.667969 107.484375 60.367188 107.484375 C 72.347656 107.484375 83.246094 102.753906 91.292969 95.066406 L 113.953125 117.726562 C 114.738281 118.515625 115.773438 118.90625 116.804688 118.90625 C 117.835938 118.90625 118.871094 118.515625 119.65625 117.726562 C 121.234375 116.152344 121.234375 113.597656 119.65625 112.019531 Z M 60.367188 99.414062 C 40.113281 99.414062 23.640625 82.941406 23.640625 62.6875 C 23.640625 42.4375 40.113281 25.960938 60.367188 25.960938 C 80.617188 25.960938 97.09375 42.4375 97.09375 62.6875 C 97.09375 82.941406 80.617188 99.414062 60.367188 99.414062 Z"/></g>
+</g>
+<text x="160" y="72" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="500" fill="#ffffff" letter-spacing="-0.5">EmDash Analytics Plugin</text>
+<text x="160" y="100" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="400" fill="#8b8a82" letter-spacing="0.2">by ROI Insights from MosierData</text>
+<text x="160" y="138" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#a09f97">Google Tag Manager  ·  Analytics  ·  Search Console</text>
+<text x="160" y="158" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#a09f97">UTM Attribution  ·  Call Tracking  ·  AI Lead Scoring</text>
+<rect x="520" y="82" width="120" height="34" rx="8" fill="#60b444" opacity="0.12" stroke="#60b444" stroke-width="0.5" stroke-opacity="0.5"/>
+<text x="580" y="104" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#60b444">Free to use</text>
+</svg>
