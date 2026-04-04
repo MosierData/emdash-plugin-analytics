@@ -1236,11 +1236,44 @@ export function TrackingSettingsAdmin() {
   const api = usePluginAPI();
   const [values, setValues] = useState<TrackingValues | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+
+  // Serialized save queue: only one request in-flight at a time.
+  // If values change while a request is in-flight, the latest snapshot is held
+  // in savePending and dispatched immediately when the current request settles.
+  // This prevents an earlier slow response from overwriting a newer fast one.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlight = useRef(false);
+  const savePending = useRef<TrackingValues | null>(null);
 
   useEffect(() => {
     void api.get<TrackingValues>('tracking/settings').then(setValues);
   }, [api]);
+
+  const dispatchSave = useCallback(
+    (snapshot: TrackingValues) => {
+      saveInFlight.current = true;
+      savePending.current = null;
+      void api
+        .post<{ ok: boolean }>('tracking/save', snapshot)
+        .then(() => {
+          saveInFlight.current = false;
+          const queued = savePending.current;
+          if (queued) {
+            // A newer snapshot arrived while we were in-flight — send it now.
+            dispatchSave(queued);
+          } else {
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus('idle'), 2000);
+          }
+        })
+        .catch(() => {
+          saveInFlight.current = false;
+          savePending.current = null;
+          setSaveStatus('error');
+        });
+    },
+    [api],
+  );
 
   const handleChange = useCallback(
     (next: TrackingValues) => {
@@ -1249,16 +1282,16 @@ export function TrackingSettingsAdmin() {
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
-        void api
-          .post<{ ok: boolean }>('tracking/save', next)
-          .then(() => {
-            setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
-          })
-          .catch(() => setSaveStatus('error'));
+        if (saveInFlight.current) {
+          // Request already in-flight — queue this snapshot; dispatchSave will
+          // pick it up the moment the current request settles.
+          savePending.current = next;
+        } else {
+          dispatchSave(next);
+        }
       }, 600);
     },
-    [api],
+    [dispatchSave],
   );
 
   if (!values) {
