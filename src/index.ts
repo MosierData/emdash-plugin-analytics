@@ -17,138 +17,10 @@ export function createPlugin() {
     capabilities: ['network:fetch'],
     allowedHosts: ['api.roiknowledge.com'],
 
-    // Simple user-configurable settings — auto-generates a settings form.
-    // Values are stored by EmDash at individual settings:<field> KV keys.
     admin: {
       entry: '@mosierdata/emdash-plugin-analytics/admin',
-      settingsSchema: {
-        licenseKey: {
-          type: 'secret',
-          label: 'License Key',
-          description: "Get this from your MosierData portal. Prefix: qdsh_"
-        },
-        gtmEnabled: {
-          type: 'boolean',
-          label: 'Enable Google Tag Manager',
-          default: false
-        },
-        gtmId: {
-          type: 'string',
-          label: 'Google Tag Manager ID',
-          description: 'e.g. GTM-XXXXXXX',
-          default: ''
-        },
-        ga4Enabled: {
-          type: 'boolean',
-          label: 'Enable Google Analytics 4',
-          default: false
-        },
-        ga4Id: {
-          type: 'string',
-          label: 'Google Analytics 4 Measurement ID',
-          description: 'e.g. G-XXXXXXXXXX',
-          default: ''
-        },
-        metaPixelEnabled: {
-          type: 'boolean',
-          label: 'Enable Meta (Facebook) Pixel',
-          default: false
-        },
-        metaPixelId: {
-          type: 'string',
-          label: 'Meta (Facebook) Pixel ID',
-          description: 'Numeric ID from Meta Events Manager',
-          default: ''
-        },
-        linkedInEnabled: {
-          type: 'boolean',
-          label: 'Enable LinkedIn Insights Tag',
-          default: false
-        },
-        linkedInPartnerId: {
-          type: 'string',
-          label: 'LinkedIn Insights Tag Partner ID',
-          description: 'Numeric Partner ID from LinkedIn Campaign Manager',
-          default: ''
-        },
-        tiktokEnabled: {
-          type: 'boolean',
-          label: 'Enable TikTok Pixel',
-          default: false
-        },
-        tiktokPixelId: {
-          type: 'string',
-          label: 'TikTok Pixel ID',
-          description: 'Alphanumeric ID from TikTok Events Manager',
-          default: ''
-        },
-        bingEnabled: {
-          type: 'boolean',
-          label: 'Enable Microsoft (Bing) UET Tag',
-          default: false
-        },
-        bingTagId: {
-          type: 'string',
-          label: 'Microsoft UET Tag ID',
-          description: 'Numeric Tag ID from Microsoft Advertising',
-          default: ''
-        },
-        pinterestEnabled: {
-          type: 'boolean',
-          label: 'Enable Pinterest Tag',
-          default: false
-        },
-        pinterestTagId: {
-          type: 'string',
-          label: 'Pinterest Tag ID',
-          description: 'Numeric Tag ID from Pinterest Ads Manager',
-          default: ''
-        },
-        nextdoorEnabled: {
-          type: 'boolean',
-          label: 'Enable Nextdoor Pixel',
-          default: false
-        },
-        nextdoorPixelId: {
-          type: 'string',
-          label: 'Nextdoor Data Source ID',
-          description: 'UUID from Nextdoor Business Ads dashboard',
-          default: ''
-        },
-        dniSwapNumber: {
-          type: 'string',
-          label: 'Website Phone Number to Swap',
-          description: 'Phone number on your site that AvidTrak will dynamically replace.',
-          default: ''
-        },
-        dniScriptUrl: {
-          type: 'string',
-          label: 'AvidTrak Script URL',
-          description: 'Provided by AvidTrak after provisioning a tracking number.',
-          default: ''
-        },
-        customHeadCode: {
-          type: 'string',
-          label: 'Custom <head> Code',
-          multiline: true,
-          default: ''
-        },
-        customFooterCode: {
-          type: 'string',
-          label: 'Custom Footer Code',
-          multiline: true,
-          default: ''
-        },
-        debug: {
-          type: 'boolean',
-          label: 'Debug Mode',
-          default: false
-        }
-      },
       pages: [
         { path: '/dashboard', label: 'Marketing ROI', icon: 'chart' },
-        { path: '/tracking', label: 'Tracking Pixels', icon: 'tracking' },
-        { path: '/settings', label: 'License & Google', icon: 'settings' }
       ]
     },
 
@@ -291,6 +163,52 @@ export function createPlugin() {
         handler: async (ctx) => {
           await ctx.kv.set('state:googleConnected', true);
           return { connected: true };
+        }
+      },
+
+      // Returns non-sensitive runtime settings for the admin UI.
+      // The license key is intentionally excluded — it is write-only from the UI.
+      'settings/load': {
+        handler: async (ctx) => {
+          const [dniSwapNumber, dniScriptUrl, customHeadCode, customFooterCode, debug] =
+            await Promise.all([
+              ctx.kv.get<string>('settings:dniSwapNumber'),
+              ctx.kv.get<string>('settings:dniScriptUrl'),
+              ctx.kv.get<string>('settings:customHeadCode'),
+              ctx.kv.get<string>('settings:customFooterCode'),
+              ctx.kv.get<boolean>('settings:debug'),
+            ]);
+          return {
+            dniSwapNumber: dniSwapNumber ?? '',
+            dniScriptUrl: dniScriptUrl ?? '',
+            customHeadCode: customHeadCode ?? '',
+            customFooterCode: customFooterCode ?? '',
+            debug: debug ?? false,
+          };
+        }
+      },
+
+      // Saves admin-configurable runtime settings. Each field is optional so
+      // callers can update only what they own (license key vs. advanced settings).
+      'settings/save': {
+        handler: async (ctx) => {
+          const body = await ctx.request.json() as {
+            licenseKey?: string;
+            dniSwapNumber?: string;
+            dniScriptUrl?: string;
+            customHeadCode?: string;
+            customFooterCode?: string;
+            debug?: boolean;
+          };
+          await Promise.all([
+            typeof body.licenseKey === 'string'      && ctx.kv.set('settings:licenseKey',      body.licenseKey.trim()),
+            typeof body.dniSwapNumber === 'string'   && ctx.kv.set('settings:dniSwapNumber',   body.dniSwapNumber),
+            typeof body.dniScriptUrl === 'string'    && ctx.kv.set('settings:dniScriptUrl',    body.dniScriptUrl),
+            typeof body.customHeadCode === 'string'  && ctx.kv.set('settings:customHeadCode',  body.customHeadCode),
+            typeof body.customFooterCode === 'string'&& ctx.kv.set('settings:customFooterCode',body.customFooterCode),
+            typeof body.debug === 'boolean'          && ctx.kv.set('settings:debug',           body.debug),
+          ].filter(Boolean) as Promise<void>[]);
+          return { ok: true };
         }
       }
     }

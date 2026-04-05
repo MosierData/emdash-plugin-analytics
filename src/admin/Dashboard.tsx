@@ -4,7 +4,11 @@ import type { LicenseData } from '../types';
 
 const DASHBOARD_BASE_URL = 'https://my.roiknowledge.com/embed';
 
-export function AdminDashboard() {
+interface AdminDashboardProps {
+  onNavigateToSettings?: () => void;
+}
+
+export function AdminDashboard({ onNavigateToSettings }: AdminDashboardProps) {
   const api = usePluginAPI();
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +46,14 @@ export function AdminDashboard() {
       <div style={{ padding: '2rem', color: '#555' }}>
         <h3>ROI Insights Dashboard</h3>
         <p>{error}</p>
-        <a href="../settings">Go to Settings →</a>
+        {onNavigateToSettings && (
+          <button
+            onClick={onNavigateToSettings}
+            style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+          >
+            Go to License &amp; Google →
+          </button>
+        )}
       </div>
     );
   }

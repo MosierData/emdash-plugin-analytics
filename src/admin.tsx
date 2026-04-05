@@ -1,16 +1,13 @@
 /**
  * Admin UI entry point — loaded in the browser by EmDash's admin panel.
  * Exports `pages` (keyed by path) and `widgets` (keyed by ID).
- * Paths must match the `admin.pages` declared in src/index.ts.
+ * All plugin tabs (Dashboard, Tracking Pixels, License & Google) are rendered
+ * inside PluginLayout so only one sidebar entry appears.
  */
-import { AdminDashboard } from './admin/Dashboard';
-import { SettingsPage } from './admin/Settings';
-import { TrackingSettingsAdmin } from './admin/TrackingSettings';
+import { PluginLayout } from './admin/PluginLayout';
 
 export const pages = {
-  '/dashboard': AdminDashboard,
-  '/settings': SettingsPage,
-  '/tracking': TrackingSettingsAdmin,
+  '/dashboard': PluginLayout,
 };
 
 export const widgets = {};
