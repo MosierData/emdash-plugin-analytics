@@ -5,9 +5,9 @@ import type { LicenseData } from '../types';
 
 // ── SDK mock ──────────────────────────────────────────────────────────────────
 
-vi.mock('@emdash-cms/admin', () => ({ usePluginAPI: vi.fn() }));
+vi.mock('../lib/usePluginAPI', () => ({ usePluginAPI: vi.fn() }));
 
-import { usePluginAPI } from '@emdash-cms/admin';
+import { usePluginAPI } from '../lib/usePluginAPI';
 const mockUsePluginAPI = vi.mocked(usePluginAPI);
 
 // ── API mock helper ───────────────────────────────────────────────────────────
@@ -41,7 +41,9 @@ const ACTIVE_LICENSE: LicenseData = {
 // ── License activation ────────────────────────────────────────────────────────
 
 describe('SettingsPage — license activation', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('shows current license status on mount', async () => {
     const api = makeApi({
@@ -107,7 +109,9 @@ describe('SettingsPage — license activation', () => {
 // ── OAuth callback ─────────────────────────────────────────────────────────────
 
 describe('SettingsPage — OAuth callback', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('posts to google-oauth/connected when callback params are present', async () => {
     vi.stubGlobal('location', { search: '?oauth_callback=1&google_connected=true', href: '' });
@@ -154,7 +158,9 @@ describe('SettingsPage — OAuth callback', () => {
 // ── Upgrade banner ─────────────────────────────────────────────────────────────
 
 describe('SettingsPage — upgrade banner', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('shows upgrade banner for free tier', async () => {
     const freeLicense: LicenseData = { isValid: true, tier: 'free', capabilities: [] };

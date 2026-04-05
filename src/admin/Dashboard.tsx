@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { usePluginAPI } from '@emdash-cms/admin';
+import { usePluginAPI } from '../lib/usePluginAPI';
 import type { LicenseData } from '../types';
 
 const DASHBOARD_BASE_URL = 'https://my.roiknowledge.com/embed';
