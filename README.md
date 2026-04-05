@@ -8,7 +8,7 @@
 
 Native one-toggle setup for Google Tag Manager, GA4, Meta Pixel, LinkedIn, TikTok, Microsoft Ads, Pinterest, and Nextdoor — plus call tracking, custom script injection, and an embedded analytics dashboard.
 
-Core features are completely free — just register for a free license key (no credit card required). Premium upgrades are available when you're ready for AI-powered call analysis, lead scoring, and advanced attribution.
+Core features are completely free — sign in with Google directly from the admin panel to generate your license key instantly (no credit card, no external portal). Premium upgrades are available when you're ready for AI-powered call analysis, lead scoring, and advanced attribution.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![EmDash Compatible](https://img.shields.io/badge/EmDash-v0.1.0+-brightgreen.svg)](https://github.com/emdash-cms/emdash)
@@ -184,13 +184,13 @@ Build and deploy your site, then open the EmDash admin panel. The plugin adds th
 
 | Tab | What You'll Do There |
 |-----|---------------------|
-| **License & Google** | Enter your license key (required — free keys are available), connect Google Analytics and Search Console via OAuth |
+| **License & Google** | Sign in with Google (or request an email magic link) to generate your free domain-bound license instantly — or paste an existing key |
 | **Tracking Pixels** | Enable/disable GTM, GA4, Meta Pixel, LinkedIn, TikTok, Microsoft UET, Pinterest, and Nextdoor — each with a simple toggle and ID field |
 | **Marketing ROI** | View your embedded analytics dashboard (GA4 traffic, Search Console data, call tracking) |
 
 **Minimum setup (under 60 seconds):**
 
-1. Go to **License & Google** — enter your license key and click **Activate**. Every account needs a key, including the free tier — [get one here](https://roiknowledge.com/?utm_source=github&utm_medium=referral&utm_campaign=emdash-analytics) if you don't have one yet
+1. Go to **License & Google** — click **Sign in with Google** (or enter your email for a magic link) to generate your free license key. It binds to your domain automatically and activates immediately — no credit card, no external portal
 2. Still on **License & Google** — click **Connect Google Services** to link GA4 and Search Console via OAuth
 3. Go to **Tracking Pixels** — toggle on Google Tag Manager, paste your GTM container ID (e.g., `GTM-XXXXXXX`), and hit **Save**
 4. (Optional) Enable any additional ad platform pixels you're running — Meta, LinkedIn, TikTok, etc.
@@ -233,7 +233,7 @@ It launched in April 2026 — which means the ecosystem is young and growing fas
 
 ### Is this really free?
 
-Yes — genuinely free, not "free for 14 days." You do need a license key (even for the free tier), but getting one takes about 30 seconds and doesn't require a credit card. The free tier gives you GTM injection, GA4 and Search Console connections, native toggles for six ad platforms, header/footer script injection, call tracking provisioning, and a basic call log.
+Yes — genuinely free, not "free for 14 days." You do need a license key (even for the free tier), but you generate it right inside the admin panel: click **Sign in with Google** (or enter your email for a magic link), and a domain-bound key is created and activated automatically — no credit card, no external account. The free tier gives you GTM injection, GA4 and Search Console connections, native toggles for six ad platforms, header/footer script injection, call tracking provisioning, and a basic call log.
 
 Paid tiers add AI transcription, lead scoring, call recording, advanced attribution, and the Ads Advisor — but the core tracking infrastructure works perfectly without them.
 
