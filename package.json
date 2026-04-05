@@ -1,6 +1,6 @@
 {
   "name": "@mosierdata/emdash-plugin-analytics",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Tag Manager, Call Tracking, and Marketing Analytics for EmDash",
   "type": "module",
   "exports": {
@@ -19,11 +19,9 @@
   },
   "files": [
     "dist",
-    "patches",
-    "scripts"
+    "patches"
   ],
   "scripts": {
-    "postinstall": "node scripts/postinstall.mjs",
     "prepack": "npm run build",
     "build": "tsdown",
     "dev": "tsdown --watch",

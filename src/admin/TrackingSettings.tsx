@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePluginAPI } from '@emdash-cms/admin';
+import { usePluginAPI } from '../lib/usePluginAPI';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

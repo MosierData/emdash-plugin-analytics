@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePluginAPI } from '@emdash-cms/admin';
+import { usePluginAPI } from '../lib/usePluginAPI';
 import type { LicenseData } from '../types';
 
 export function SettingsPage() {
