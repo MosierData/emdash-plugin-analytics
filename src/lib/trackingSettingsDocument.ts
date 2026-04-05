@@ -129,12 +129,21 @@ export async function loadTrackingSettingsDocument(
  * Ensure the canonical doc exists so saveTrackingSettings always has a snapshot
  * for conflict detection. Called when the /tracking UI loads settings — by save
  * time the doc exists and the field-by-field stale check runs.
+ *
+ * No-ops silently when the emdash KV does not have the CAS patch applied so
+ * that the tracking/settings GET succeeds even on un-patched deployments.
  */
 export async function ensureCanonicalDocExists(
   ctx: Pick<PluginContext, 'kv'>,
   doc: TrackingSettingsDocument,
 ): Promise<void> {
-  const kv = asKvWithCas(ctx.kv);
+  let kv: KvWithCas;
+  try {
+    kv = asKvWithCas(ctx.kv);
+  } catch {
+    // CAS not available on this emdash build — skip seeding the canonical doc.
+    return;
+  }
   const existing = await kv.getRaw(TRACKING_SETTINGS_DOC_KEY);
   if (existing === null) {
     await kv.commitIfValueUnchanged(TRACKING_SETTINGS_DOC_KEY, null, doc);
