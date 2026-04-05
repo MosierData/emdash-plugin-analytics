@@ -4,7 +4,7 @@ import { verifyEd25519Signature } from './crypto';
 
 export const CACHE_KEY = 'state:licenseCache';
 
-const VALIDATE_URL = 'https://dashboard.mosierdata.com/api/roi/plugin/validate';
+const VALIDATE_URL = 'https://api.roiknowledge.com/api/roi/plugin/validate';
 
 // Ed25519 public key from the MosierData signing keypair.
 const PUBLIC_KEY = 'COwQzXhDeQC9uxAdyNFdbFbIrwLAGgtRZlhfAxbR0Dk=';

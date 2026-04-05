@@ -15,7 +15,7 @@ export function createPlugin() {
     id: 'roi-insights',
     version: '1.0.0',
     capabilities: ['network:fetch'],
-    allowedHosts: ['dashboard.mosierdata.com'],
+    allowedHosts: ['api.roiknowledge.com'],
 
     // Simple user-configurable settings — auto-generates a settings form.
     // Values are stored by EmDash at individual settings:<field> KV keys.
@@ -247,7 +247,7 @@ export function createPlugin() {
           const domain = new URL(ctx.request.url).origin;
           const httpFetch = ctx.http ? ctx.http.fetch.bind(ctx.http) : fetch;
           const response = await httpFetch(
-            'https://dashboard.mosierdata.com/api/roi/plugin/oauth/google/initiate',
+            'https://api.roiknowledge.com/api/roi/plugin/oauth/google/initiate',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
