@@ -139,6 +139,27 @@ From your EmDash project directory, install the package:
 npm install @mosierdata/emdash-plugin-analytics
 ```
 
+### EmDash 0.1.x — Apply the KV Patch
+
+If you're running EmDash **0.1.x**, the analytics plugin requires KV helpers (`getRaw`, `commitIfValueUnchanged`) that aren't in the stock release yet. Apply the included patch at **your site's repo root** (not inside the plugin):
+
+```bash
+npm install patch-package --save
+mkdir -p patches
+cp node_modules/@mosierdata/emdash-plugin-analytics/patches/emdash+0.1.0.patch patches/
+npx patch-package
+```
+
+Then add a `postinstall` script to your site's `package.json` so the patch re-applies on every install:
+
+```json
+"scripts": {
+  "postinstall": "patch-package"
+}
+```
+
+> This step won't be needed once EmDash ships these KV APIs natively. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for details.
+
 ### Step 2 — Register the Plugin
 
 Add the plugin to your `astro.config.mjs`:
