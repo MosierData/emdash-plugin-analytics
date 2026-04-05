@@ -86,6 +86,103 @@ export function createPlugin() {
         }
       },
 
+      // Returns the OAuth popup URL for the given provider. Domain is derived
+      // server-side from the request origin so callers cannot spoof the binding.
+      'license/oauth-redirect': {
+        handler: async (ctx) => {
+          const url = new URL(ctx.request.url);
+          const provider = url.searchParams.get('provider') ?? 'google';
+          const domain = url.origin;
+          return {
+            authUrl: `https://api.roiknowledge.com/api/roi/plugin/auth/${provider}/redirect?domain=${encodeURIComponent(domain)}`
+          };
+        }
+      },
+
+      // Exchanges the one-time token received via postMessage from the OAuth popup
+      // for a license key. Saves the key to KV and returns a fresh license state.
+      'license/register': {
+        handler: async (ctx) => {
+          const { token } = await ctx.request.json() as { token: string };
+          const httpFetch = ctx.http ? ctx.http.fetch.bind(ctx.http) : fetch;
+
+          const exchangeRes = await httpFetch(
+            'https://api.roiknowledge.com/api/roi/plugin/auth/exchange',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token })
+            }
+          );
+
+          if (!exchangeRes.ok) {
+            const err = await exchangeRes.json().catch(() => ({})) as { message?: string };
+            return { ok: false, error: err.message ?? 'Registration failed' };
+          }
+
+          const data = await exchangeRes.json() as {
+            license_key: string;
+            tier: string;
+            is_new_account: boolean;
+            email: string;
+            name: string;
+          };
+
+          await ctx.kv.set('settings:licenseKey', data.license_key);
+
+          // Expire cache so validateLicense hits the API fresh (mirrors license/validate)
+          const existing = await ctx.kv.get<LicenseData>(CACHE_KEY);
+          if (existing) {
+            await ctx.kv.set(CACHE_KEY, { ...existing, expiresAt: 0 });
+          }
+
+          const license = await validateLicense(ctx);
+          return { ok: true, license, isNewAccount: data.is_new_account };
+        }
+      },
+
+      // Requests a magic link email for self-service license registration.
+      // Domain is derived server-side so the caller cannot spoof the binding.
+      'license/request-magic-link': {
+        handler: async (ctx) => {
+          const { email } = await ctx.request.json() as { email: string };
+          const domain = new URL(ctx.request.url).origin;
+          const httpFetch = ctx.http ? ctx.http.fetch.bind(ctx.http) : fetch;
+
+          const res = await httpFetch(
+            'https://api.roiknowledge.com/api/roi/plugin/auth/magic-link',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, domain })
+            }
+          );
+
+          // Pass through both 200 and 429 as-is — frontend handles both shapes
+          return res.json();
+        }
+      },
+
+      // Proxies magic link poll status so the ROI API host stays server-side.
+      // Non-OK responses are normalized to { status: 'failed' } so the poller
+      // always receives a typed terminal state rather than an unhandled shape.
+      'license/magic-link-status': {
+        handler: async (ctx) => {
+          const pollToken = new URL(ctx.request.url).searchParams.get('poll_token') ?? '';
+          const httpFetch = ctx.http ? ctx.http.fetch.bind(ctx.http) : fetch;
+
+          const res = await httpFetch(
+            `https://api.roiknowledge.com/api/roi/plugin/auth/magic-link/status?poll_token=${encodeURIComponent(pollToken)}`
+          );
+
+          if (!res.ok) {
+            return { status: 'failed', error: 'Verification service unavailable' };
+          }
+
+          return res.json();
+        }
+      },
+
       // Forces a fresh API check. Snapshots the current cache first so a
       // transient network outage during revalidation does not disable tracking.
       'license/validate': {
