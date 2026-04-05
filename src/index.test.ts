@@ -105,8 +105,16 @@ function getHandlers() {
     validateRoute: config.routes['license/validate'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
     statusRoute: config.routes['license/status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
     trackingSettings: config.routes['tracking/settings'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
-    trackingSave: config.routes['tracking/save'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>
+    trackingSave: config.routes['tracking/save'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    oauthRedirect: config.routes['license/oauth-redirect'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
+    register: config.routes['license/register'].handler as (ctx: ReturnType<typeof makeCtxWithJson>) => Promise<unknown>,
+    requestMagicLink: config.routes['license/request-magic-link'].handler as (ctx: ReturnType<typeof makeCtxWithJson>) => Promise<unknown>,
+    magicLinkStatus: config.routes['license/magic-link-status'].handler as (ctx: ReturnType<typeof makeCtx>) => Promise<unknown>,
   };
+}
+
+function makeCtxWithUrl(kv: ReturnType<typeof makeKv>, url: string) {
+  return { ...makeCtx(kv), request: { url } };
 }
 
 const EMPTY_TRACKING_BODY = {
@@ -348,5 +356,189 @@ describe('tracking/settings + tracking/save revision', () => {
     expect(result).toEqual({ ok: true, settingsRevision: 1 });
     expect(kvPeek(kv, 'settings:gtmId')).toBe('OK');
     expect(attempts).toBe(3);
+  });
+});
+
+// ── license/oauth-redirect ────────────────────────────────────────────────────
+
+describe('license/oauth-redirect', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns authUrl with google provider by default', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithUrl(kv, 'https://clientsite.com/_emdash/api/plugins/roi-insights/license/oauth-redirect');
+    const { oauthRedirect } = getHandlers();
+
+    const result = await oauthRedirect(ctx) as { authUrl: string };
+
+    expect(result.authUrl).toContain('/api/roi/plugin/auth/google/redirect');
+    expect(result.authUrl).toContain('domain=');
+  });
+
+  it('encodes the domain from the request origin', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithUrl(kv, 'https://my-client.com/_emdash/api/plugins/roi-insights/license/oauth-redirect');
+    const { oauthRedirect } = getHandlers();
+
+    const result = await oauthRedirect(ctx) as { authUrl: string };
+
+    expect(result.authUrl).toContain(encodeURIComponent('https://my-client.com'));
+  });
+
+  it('respects the provider query param', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithUrl(kv, 'https://clientsite.com/_emdash/api/plugins/roi-insights/license/oauth-redirect?provider=linkedin');
+    const { oauthRedirect } = getHandlers();
+
+    const result = await oauthRedirect(ctx) as { authUrl: string };
+
+    expect(result.authUrl).toContain('/api/roi/plugin/auth/linkedin/redirect');
+  });
+});
+
+// ── license/register ──────────────────────────────────────────────────────────
+
+describe('license/register', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('exchanges token, saves license key, and returns validated license', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { token: 'one-time-tok' });
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        license_key: 'qdsh_abc123',
+        tier: 'free',
+        is_new_account: true,
+        email: 'user@example.com',
+        name: 'User'
+      })
+    });
+    mockValidate.mockResolvedValue(VALID_LICENSE);
+    const { register } = getHandlers();
+
+    const result = await register(ctx) as { ok: boolean; license: LicenseData; isNewAccount: boolean };
+
+    expect(ctx.http.fetch).toHaveBeenCalledWith(
+      'https://api.roiknowledge.com/api/roi/plugin/auth/exchange',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'one-time-tok' }) })
+    );
+    expect(kvPeek(kv, 'settings:licenseKey')).toBe('qdsh_abc123');
+    expect(result.ok).toBe(true);
+    expect(result.license).toEqual(VALID_LICENSE);
+    expect(result.isNewAccount).toBe(true);
+  });
+
+  it('returns {ok: false, error} when exchange API returns non-OK', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { token: 'bad-tok' });
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ message: 'Token already used' })
+    });
+    const { register } = getHandlers();
+
+    const result = await register(ctx) as { ok: boolean; error: string };
+
+    expect(result).toEqual({ ok: false, error: 'Token already used' });
+    expect(kv.set).not.toHaveBeenCalledWith('settings:licenseKey', expect.anything());
+  });
+
+  it('expires the cache before calling validateLicense', async () => {
+    const kv = makeKv({ [CACHE_KEY]: VALID_LICENSE });
+    const ctx = makeCtxWithJson(kv, { token: 'tok' });
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ license_key: 'qdsh_x', tier: 'free', is_new_account: false, email: 'u@u.com', name: 'U' })
+    });
+    mockValidate.mockResolvedValue(VALID_LICENSE);
+    const { register } = getHandlers();
+
+    await register(ctx);
+
+    const expireCall = kv.set.mock.calls.find(([key, val]) => key === CACHE_KEY && (val as LicenseData).expiresAt === 0);
+    expect(expireCall).toBeDefined();
+    expect(mockValidate).toHaveBeenCalled();
+  });
+});
+
+// ── license/request-magic-link ────────────────────────────────────────────────
+
+describe('license/request-magic-link', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('proxies the request with the server-side domain and returns poll_token', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { email: 'user@example.com' });
+    ctx.request = { ...ctx.request, url: 'https://clientsite.com/_emdash/api/plugins/roi-insights/license/request-magic-link' };
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ poll_token: 'tok48', expires_in: 600 })
+    });
+    const { requestMagicLink } = getHandlers();
+
+    const result = await requestMagicLink(ctx) as { poll_token: string };
+
+    expect(ctx.http.fetch).toHaveBeenCalledWith(
+      'https://api.roiknowledge.com/api/roi/plugin/auth/magic-link',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'user@example.com', domain: 'https://clientsite.com' })
+      })
+    );
+    expect(result.poll_token).toBe('tok48');
+  });
+
+  it('passes through 429 rate-limit response as-is', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithJson(kv, { email: 'user@example.com' });
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: 'A magic link was already sent.', retry_after: 30 })
+    });
+    const { requestMagicLink } = getHandlers();
+
+    const result = await requestMagicLink(ctx) as { error: string; retry_after: number };
+
+    expect(result.retry_after).toBe(30);
+    expect(result.error).toMatch(/already sent/i);
+  });
+});
+
+// ── license/magic-link-status ─────────────────────────────────────────────────
+
+describe('license/magic-link-status', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('passes poll_token and returns pending status from upstream', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithUrl(kv, 'https://clientsite.com/_emdash/api/plugins/roi-insights/license/magic-link-status?poll_token=tok48');
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ status: 'pending' })
+    });
+    const { magicLinkStatus } = getHandlers();
+
+    const result = await magicLinkStatus(ctx) as { status: string };
+
+    expect(ctx.http.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('poll_token=tok48')
+    );
+    expect(result.status).toBe('pending');
+  });
+
+  it('returns {status: failed} for non-OK upstream responses instead of propagating error shape', async () => {
+    const kv = makeKv({});
+    const ctx = makeCtxWithUrl(kv, 'https://clientsite.com/_emdash/api/plugins/roi-insights/license/magic-link-status?poll_token=bad');
+    ctx.http.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: 'token not found' })
+    });
+    const { magicLinkStatus } = getHandlers();
+
+    const result = await magicLinkStatus(ctx) as { status: string; error: string };
+
+    expect(result.status).toBe('failed');
+    expect(result.error).toMatch(/unavailable/i);
   });
 });
